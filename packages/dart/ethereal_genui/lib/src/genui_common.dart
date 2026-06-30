@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:ethereal_genui_core/ethereal_genui_core.dart';
-
 import 'genui_theme.dart';
 
 export 'package:ethereal_genui_core/ethereal_genui_core.dart' show GenUiOption, genUiOptions;
