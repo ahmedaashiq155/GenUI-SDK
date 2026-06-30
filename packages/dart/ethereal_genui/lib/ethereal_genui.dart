@@ -18,16 +18,16 @@
 /// ```
 library;
 
-// Core
+// Core (pure Dart — re-exported so hosts keep a single unchanged import)
+export 'package:ethereal_genui_core/ethereal_genui_core.dart';
+
+// Flutter-layer
 export 'src/genui_actions.dart';
 export 'src/genui_block.dart' show buildGenUiSpec, genUiPlaceholder, GenUiBlock;
 export 'src/genui_registry.dart';
-export 'src/genui_schema.dart';
 export 'src/genui_state.dart';
 export 'src/genui_theme.dart';
 export 'src/genui_common.dart' show GenUi;
-export 'src/message_segments.dart';
-export 'src/json_patch.dart';
 
 // Renderers / helpers used directly by hosts (the rest are registry-internal).
 export 'src/renderers/artifact.dart' show ArtifactRenderer;

@@ -1,0 +1,20 @@
+name: ethereal_genui
+repository: https://github.com/ethereal/ethereal-genui
+
+packages:
+  - packages/dart/*
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  test:
+    run: melos exec -- flutter test
+    description: Run tests across all packages
+  analyze:
+    run: melos exec -- flutter analyze
+    description: Analyze all packages
+  schema:export:
+    run: dart run packages/dart/ethereal_genui_core/bin/export_schema.dart
+    description: Export JSON Schema from Dart catalog

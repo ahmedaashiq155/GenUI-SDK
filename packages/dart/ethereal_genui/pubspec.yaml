@@ -4,7 +4,7 @@ description: >-
   model-authored JSON `ui` blocks as real, interactive widgets — with a pluggable
   registry, a single-source-of-truth schema, durable per-widget state, and an
   RFC-6902 delta loop.
-version: 0.1.0
+version: 0.2.0
 publish_to: "none"
 
 environment:
@@ -14,8 +14,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Used only by the `chart` block renderer.
   fl_chart: ^0.69.0
+  ethereal_genui_core:
+    path: ../ethereal_genui_core
 
 dev_dependencies:
   flutter_test:

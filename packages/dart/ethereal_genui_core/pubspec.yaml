@@ -1,0 +1,5 @@
+name: ethereal_genui_core
+version: 0.2.0
+environment:
+  sdk: ^3.12.2
+# Zero dependencies — intentional
