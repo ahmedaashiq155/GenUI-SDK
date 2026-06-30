@@ -53,3 +53,29 @@
 **Gemini tool-calling:** `GeminiAdapter` implements text-only streaming. Gemini function calling uses a different protocol (structured `functionCall` parts, not SSE text deltas) that was not specified in the brief. Full Gemini tool-use support is a follow-on task. Gemini also does not issue tool-call IDs, so `GenUiToolCall.id` will be null for Gemini-originated calls.
 
 **Host import ergonomics:** `ethereal_genui` exports `GenUiChat` but does not re-export `ethereal_genui_llm`. A host importing only `ethereal_genui` cannot construct `GenUiDirectConnection` without a second import of `ethereal_genui_llm`. This is consistent with the brief's design (separate packages) but worth noting for downstream host documentation.
+
+---
+
+## Code-Review Fixes (commit `e9b0509`)
+
+### Fix 1 — Anthropic adapter: empty tool input crash
+**File:** `lib/src/adapters/anthropic_adapter.dart`
+
+In the `content_block_stop` handler, `jsonDecode(toolInputBuffer.toString())` would throw `FormatException` when the LLM calls a tool with zero parameters (empty buffer). Fixed by guarding the decode:
+
+```dart
+final rawInput = toolInputBuffer.toString();
+final args = rawInput.isEmpty
+    ? <String, dynamic>{}
+    : jsonDecode(rawInput) as Map<String, dynamic>;
+```
+
+### Fix 2 — OpenAI adapter: parallel tool calls silently overwriting each other
+**File:** `lib/src/adapters/openai_adapter.dart`
+
+Single `pendingToolName`/`toolArgBuffer` variables meant that when OpenAI streams parallel tool calls (distinct `index` values), only the last one was emitted. Replaced with a `Map<int, ({String name, String? id, StringBuffer args})>` keyed by `tool_calls[].index`. On `[DONE]`, all accumulated entries are emitted. The same empty-buffer guard from Fix 1 is applied here as well.
+
+### Test Results
+- `dart analyze packages/dart/ethereal_genui_llm` — **0 issues**
+- `dart test packages/dart/ethereal_genui_llm` — **5/5 passing**
+- `flutter test packages/dart/ethereal_genui` — **39/39 passing**
