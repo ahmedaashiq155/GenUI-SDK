@@ -1,4 +1,16 @@
 import React from 'react'
+import { TextRenderer } from './renderers/TextRenderer.js'
+import { IconRenderer } from './renderers/IconRenderer.js'
+import { SpacerRenderer } from './renderers/SpacerRenderer.js'
+import { ButtonRenderer } from './renderers/ButtonRenderer.js'
+import { BoxRenderer } from './renderers/BoxRenderer.js'
+import { RowRenderer } from './renderers/RowRenderer.js'
+import { ColumnRenderer } from './renderers/ColumnRenderer.js'
+import { StackRenderer } from './renderers/StackRenderer.js'
+import { ChartRenderer } from './renderers/ChartRenderer.js'
+import { ArtifactRenderer } from './renderers/ArtifactRenderer.js'
+import { ThemeDirectiveRenderer } from './renderers/ThemeDirectiveRenderer.js'
+import { ShortcutsDirectiveRenderer } from './renderers/ShortcutsDirectiveRenderer.js'
 import { ChoicesRenderer } from './renderers/ChoicesRenderer.js'
 import { ActionsRenderer } from './renderers/ActionsRenderer.js'
 import { ConfirmRenderer } from './renderers/ConfirmRenderer.js'
@@ -74,6 +86,18 @@ export function GenUiBlock({ spec, onSend, className, style }: GenUiBlockProps) 
     case 'accordion':  return <AccordionRenderer  spec={spec} onSend={onSend} className={className} style={style} />
     case 'tabs':       return <TabsRenderer       spec={spec} onSend={onSend} className={className} style={style} />
     case 'when':       return <WhenRenderer       spec={spec} onSend={onSend} className={className} style={style} />
+    case 'text':       return <TextRenderer        spec={spec} onSend={onSend} className={className} style={style} />
+    case 'icon':       return <IconRenderer        spec={spec} onSend={onSend} className={className} style={style} />
+    case 'spacer':     return <SpacerRenderer      spec={spec}                 className={className} style={style} />
+    case 'button':     return <ButtonRenderer      spec={spec} onSend={onSend} className={className} style={style} />
+    case 'box':        return <BoxRenderer         spec={spec} onSend={onSend} className={className} style={style} />
+    case 'row':        return <RowRenderer         spec={spec} onSend={onSend} className={className} style={style} />
+    case 'column':     return <ColumnRenderer      spec={spec} onSend={onSend} className={className} style={style} />
+    case 'stack':      return <StackRenderer       spec={spec} onSend={onSend} className={className} style={style} />
+    case 'chart':      return <ChartRenderer       spec={spec} onSend={onSend} className={className} style={style} />
+    case 'artifact':   return <ArtifactRenderer    spec={spec} onSend={onSend} className={className} style={style} />
+    case 'theme':      return <ThemeDirectiveRenderer spec={spec} onSend={onSend} className={className} style={style} />
+    case 'shortcuts':  return <ShortcutsDirectiveRenderer spec={spec} onSend={onSend} className={className} style={style} />
     default:           return null
   }
 }

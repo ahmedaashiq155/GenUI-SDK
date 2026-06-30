@@ -75,6 +75,15 @@ export function useOptionalGenUiStore(): GenUiStore | null {
 }
 
 /**
+ * Returns GenUiActions if inside a GenUiProvider, null otherwise.
+ * Use in directive renderers so they work with OR without a provider.
+ */
+export function useOptionalGenUiActions(): GenUiActions | null {
+  const ctx = useContext(GenUiContext)
+  return ctx?.actions ?? null
+}
+
+/**
  * State hook that mirrors Dart's GenUiPersistedState mixin.
  * If `id` is set and a GenUiProvider is present, persists value to the store.
  * If no id or no provider, behaves as plain local state.
