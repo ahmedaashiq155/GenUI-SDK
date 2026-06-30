@@ -122,7 +122,7 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
                         backgroundColor: isSel
                           ? 'var(--ethereal-accent)'
                           : 'color-mix(in srgb, var(--ethereal-accent) 10%, transparent)',
-                        color: isSel ? 'var(--ethereal-on-accent, #fff)' : 'var(--ethereal-accent)',
+                        color: isSel ? 'var(--ethereal-on-accent)' : 'var(--ethereal-accent)',
                       }}
                     >
                       {opt.label}
@@ -158,7 +158,7 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
           fontWeight: 500,
           fontSize: '0.875rem',
           backgroundColor: 'var(--ethereal-accent)',
-          color: 'var(--ethereal-on-accent, #fff)',
+          color: 'var(--ethereal-on-accent)',
           alignSelf: 'flex-start',
           transition: 'opacity 0.1s ease',
           marginTop: 'var(--ethereal-space-sm)',

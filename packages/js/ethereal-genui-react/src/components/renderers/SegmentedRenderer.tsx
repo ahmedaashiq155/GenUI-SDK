@@ -71,7 +71,7 @@ export function SegmentedRenderer({ spec, onSend, className, style }: SegmentedR
                 fontSize: '0.8125rem',
                 textAlign: 'center',
                 backgroundColor: isSelected ? 'var(--ethereal-accent)' : 'transparent',
-                color: isSelected ? 'var(--ethereal-on-accent, #fff)' : 'var(--ethereal-text-secondary, var(--ethereal-text-primary))',
+                color: isSelected ? 'var(--ethereal-on-accent)' : 'var(--ethereal-text-secondary)',
                 transition: 'background-color 0.15s ease, color 0.15s ease',
               }}
             >

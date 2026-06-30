@@ -57,7 +57,7 @@ export function ActionsRenderer({ spec, onSend, className, style }: ActionsRende
                 backgroundColor: primary
                   ? 'var(--ethereal-accent)'
                   : 'color-mix(in srgb, var(--ethereal-accent) 10%, transparent)',
-                color: primary ? 'var(--ethereal-on-accent, #fff)' : 'var(--ethereal-accent)',
+                color: primary ? 'var(--ethereal-on-accent)' : 'var(--ethereal-accent)',
                 transition: 'opacity 0.1s ease',
               }}
               onMouseOver={(e) => (e.currentTarget.style.opacity = '0.8')}

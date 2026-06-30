@@ -7,6 +7,8 @@
   --ethereal-text-primary: #1a1a1a;
   --ethereal-text-secondary: #6b7280;
   --ethereal-text-tertiary: #9ca3af;
+  --ethereal-celadon: #4caf50;
+  --ethereal-danger: #ef4444;
   --ethereal-radius-sm: 6px;
   --ethereal-radius-md: 10px;
   --ethereal-radius-lg: 14px;
@@ -26,5 +28,7 @@
     --ethereal-text-primary: #f0f0f5;
     --ethereal-text-secondary: #a0a0b0;
     --ethereal-text-tertiary: #6b6b80;
+    --ethereal-celadon: #66bb6a;
+    --ethereal-danger: #f87171;
   }
 }

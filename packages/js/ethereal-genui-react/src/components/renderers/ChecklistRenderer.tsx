@@ -79,7 +79,7 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
           >
             <span style={{
               fontSize: '1.25rem',
-              color: isChecked ? 'var(--ethereal-accent)' : 'var(--ethereal-text-tertiary, #aaa)',
+              color: isChecked ? 'var(--ethereal-accent)' : 'var(--ethereal-text-tertiary)',
               lineHeight: 1,
             }}>
               {isChecked ? '✓' : '○'}
@@ -107,7 +107,7 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
           backgroundColor: checkedIndices.length > 0
             ? 'var(--ethereal-accent)'
             : 'color-mix(in srgb, var(--ethereal-accent) 20%, transparent)',
-          color: checkedIndices.length > 0 ? 'var(--ethereal-on-accent, #fff)' : 'var(--ethereal-text-tertiary, #aaa)',
+          color: checkedIndices.length > 0 ? 'var(--ethereal-on-accent)' : 'var(--ethereal-text-tertiary)',
           alignSelf: 'flex-start',
           opacity: checkedIndices.length > 0 ? 1 : 0.5,
           marginTop: 'var(--ethereal-space-sm)',

@@ -50,7 +50,7 @@ export function ConfirmRenderer({ spec, onSend, className, style }: ConfirmRende
           style={{
             ...pillBase,
             backgroundColor: 'var(--ethereal-accent)',
-            color: 'var(--ethereal-on-accent, #fff)',
+            color: 'var(--ethereal-on-accent)',
           }}
           onMouseOver={(e) => (e.currentTarget.style.opacity = '0.8')}
           onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}

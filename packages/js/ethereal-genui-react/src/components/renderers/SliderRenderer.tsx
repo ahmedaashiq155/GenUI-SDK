@@ -87,7 +87,7 @@ export function SliderRenderer({ spec, onSend, className, style }: SliderRendere
           fontWeight: 500,
           fontSize: '0.875rem',
           backgroundColor: 'var(--ethereal-accent)',
-          color: 'var(--ethereal-on-accent, #fff)',
+          color: 'var(--ethereal-on-accent)',
           alignSelf: 'flex-start',
           transition: 'opacity 0.1s ease',
         }}

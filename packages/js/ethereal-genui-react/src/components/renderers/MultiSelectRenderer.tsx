@@ -75,7 +75,7 @@ export function MultiSelectRenderer({ spec, onSend, className, style }: MultiSel
                 backgroundColor: isSel
                   ? 'var(--ethereal-accent)'
                   : 'color-mix(in srgb, var(--ethereal-accent) 10%, transparent)',
-                color: isSel ? 'var(--ethereal-on-accent, #fff)' : 'var(--ethereal-accent)',
+                color: isSel ? 'var(--ethereal-on-accent)' : 'var(--ethereal-accent)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -103,7 +103,7 @@ export function MultiSelectRenderer({ spec, onSend, className, style }: MultiSel
           backgroundColor: selected.length > 0
             ? 'var(--ethereal-accent)'
             : 'color-mix(in srgb, var(--ethereal-accent) 20%, transparent)',
-          color: selected.length > 0 ? 'var(--ethereal-on-accent, #fff)' : 'var(--ethereal-text-tertiary, #aaa)',
+          color: selected.length > 0 ? 'var(--ethereal-on-accent)' : 'var(--ethereal-text-tertiary)',
           alignSelf: 'flex-start',
           opacity: selected.length > 0 ? 1 : 0.5,
           transition: 'opacity 0.1s ease',

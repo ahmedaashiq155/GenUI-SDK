@@ -62,12 +62,12 @@ export function QuizRenderer({ spec, onSend: _onSend, className, style }: QuizRe
         let icon: string | null = null
 
         if (isCorrect) {
-          borderColor = 'var(--ethereal-celadon, #4caf50)'
-          bgColor = 'color-mix(in srgb, var(--ethereal-celadon, #4caf50) 14%, transparent)'
+          borderColor = 'var(--ethereal-celadon)'
+          bgColor = 'color-mix(in srgb, var(--ethereal-celadon) 14%, transparent)'
           icon = '✓'
         } else if (isWrong) {
-          borderColor = 'var(--ethereal-danger, #ef4444)'
-          bgColor = 'color-mix(in srgb, var(--ethereal-danger, #ef4444) 12%, transparent)'
+          borderColor = 'var(--ethereal-danger)'
+          bgColor = 'color-mix(in srgb, var(--ethereal-danger) 12%, transparent)'
           icon = '✗'
         }
 
@@ -95,8 +95,8 @@ export function QuizRenderer({ spec, onSend: _onSend, className, style }: QuizRe
               <span style={{
                 fontSize: '1rem',
                 color: isCorrect
-                  ? 'var(--ethereal-celadon, #4caf50)'
-                  : 'var(--ethereal-danger, #ef4444)',
+                  ? 'var(--ethereal-celadon)'
+                  : 'var(--ethereal-danger)',
               }}>
                 {icon}
               </span>

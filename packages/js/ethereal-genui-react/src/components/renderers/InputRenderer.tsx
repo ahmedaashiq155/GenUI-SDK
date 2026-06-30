@@ -81,7 +81,7 @@ export function InputRenderer({ spec, onSend, className, style }: InputRendererP
           backgroundColor: text.trim()
             ? 'var(--ethereal-accent)'
             : 'color-mix(in srgb, var(--ethereal-accent) 20%, transparent)',
-          color: text.trim() ? 'var(--ethereal-on-accent, #fff)' : 'var(--ethereal-text-tertiary, #aaa)',
+          color: text.trim() ? 'var(--ethereal-on-accent)' : 'var(--ethereal-text-tertiary)',
           alignSelf: 'flex-start',
           transition: 'opacity 0.1s ease',
           opacity: text.trim() ? 1 : 0.5,
