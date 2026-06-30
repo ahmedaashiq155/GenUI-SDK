@@ -134,18 +134,22 @@ class AguiFlutterAdapter extends ChangeNotifier {
   /// Notify the agent that widget state has changed.
   ///
   /// Computes an RFC-6902 diff between [_processor.widgetState] and
-  /// [newWidgetState] using a shallow replace-all strategy, then stores the
-  /// new state. The generated [StateDeltaEvent] is available to subclasses
-  /// that override this method if they want to forward it back to the agent.
-  ///
-  /// In this base implementation the diff is applied locally only (the agent
-  /// is not called). Override to forward the delta upstream if your backend
-  /// supports bidirectional state sync.
+  /// [newWidgetState] via [stateChangedToDelta], emits the resulting
+  /// [StateDeltaEvent] upstream via [EtherealAguiTransport.sendEvent]
+  /// (fire-and-forget), then applies the patch locally so the processor
+  /// stays consistent.
   void onWidgetStateChanged(Map<String, dynamic> newWidgetState) {
-    final ops = _diffWidgetState(_processor.widgetState, newWidgetState);
-    if (ops.isEmpty) return;
+    final delta = stateChangedToDelta(
+      _processor.widgetState,
+      newWidgetState,
+      '',
+      '',
+    );
+    if (delta.delta.isEmpty) return;
+    // Forward delta upstream — fire-and-forget.
+    _agent.sendEvent(delta);
     // Apply locally so the processor stays consistent.
-    final patched = applyJsonPatch(_processor.widgetState, ops);
+    final patched = applyJsonPatch(_processor.widgetState, delta.delta);
     if (patched is Map<String, dynamic>) {
       _processor.widgetState = patched;
     } else if (patched is Map) {
@@ -183,29 +187,6 @@ class AguiFlutterAdapter extends ChangeNotifier {
 
   void _onProcessorChanged() {
     notifyListeners();
-  }
-
-  /// Produce RFC-6902 replace ops for every key that differs between [old] and
-  /// [next]. Adds `add` ops for new keys and `remove` ops for deleted keys.
-  static List<Map<String, dynamic>> _diffWidgetState(
-    Map<String, dynamic> old,
-    Map<String, dynamic> next,
-  ) {
-    final ops = <Map<String, dynamic>>[];
-    for (final key in next.keys) {
-      final path = '/$key';
-      if (!old.containsKey(key)) {
-        ops.add({'op': 'add', 'path': path, 'value': next[key]});
-      } else if (old[key] != next[key]) {
-        ops.add({'op': 'replace', 'path': path, 'value': next[key]});
-      }
-    }
-    for (final key in old.keys) {
-      if (!next.containsKey(key)) {
-        ops.add({'op': 'remove', 'path': '/$key'});
-      }
-    }
-    return ops;
   }
 
   static String _generateId() {

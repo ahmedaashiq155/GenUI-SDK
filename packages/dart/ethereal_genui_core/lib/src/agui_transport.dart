@@ -61,6 +61,39 @@ Object? applyStateDelta(Object? currentSpec, BaseEvent event) {
   return applyJsonPatch(currentSpec, event.delta);
 }
 
+/// Computes an RFC-6902 diff between [oldState] and [newState] and returns
+/// a [StateDeltaEvent] containing the patch operations.
+///
+/// Uses a shallow replace-all strategy: added keys produce `add` ops, changed
+/// values produce `replace` ops, and removed keys produce `remove` ops.
+///
+/// [runId] and [seq] are accepted for API completeness and future protocol
+/// extensions; they are not embedded in the returned [StateDeltaEvent] because
+/// the AG-UI 0.3 [StateDeltaEvent] type does not carry per-run or sequence
+/// identifiers.
+StateDeltaEvent stateChangedToDelta(
+  Map<String, dynamic> oldState,
+  Map<String, dynamic> newState,
+  String runId,
+  String seq,
+) {
+  final ops = <Map<String, dynamic>>[];
+  for (final key in newState.keys) {
+    final path = '/$key';
+    if (!oldState.containsKey(key)) {
+      ops.add({'op': 'add', 'path': path, 'value': newState[key]});
+    } else if (oldState[key] != newState[key]) {
+      ops.add({'op': 'replace', 'path': path, 'value': newState[key]});
+    }
+  }
+  for (final key in oldState.keys) {
+    if (!newState.containsKey(key)) {
+      ops.add({'op': 'remove', 'path': '/$key'});
+    }
+  }
+  return StateDeltaEvent(delta: ops);
+}
+
 // ---------------------------------------------------------------------------
 // Transport interface
 // ---------------------------------------------------------------------------
@@ -84,6 +117,13 @@ abstract class EtherealAguiTransport {
   /// complete (close) when the run finishes or errors. The caller is
   /// responsible for cancelling the subscription if an early abort is needed.
   Stream<BaseEvent> run(RunAgentInput input);
+
+  /// Send an [event] upstream to the connected agent.
+  ///
+  /// The default implementation is a no-op, preserving backward compatibility
+  /// with existing [EtherealAguiTransport] implementations. Override to forward
+  /// events (e.g., [StateDeltaEvent]) to the connected agent endpoint.
+  Future<void> sendEvent(dynamic event) async {}
 }
 
 // ---------------------------------------------------------------------------
@@ -244,8 +284,6 @@ class AguiEventProcessor {
       case EventType.textMessageEnd:
         // parseSegments finalises the accumulated buffer.
         final text = streamingText ?? '';
-        // We keep streamingText non-null so callers can access the final value;
-        // the host (AguiFlutterAdapter) clears it after consuming.
         if (text.isNotEmpty) {
           // Store the segments-parsed result in messages for history.
           final segs = parseSegments(text);
