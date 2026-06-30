@@ -3,6 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('applyJsonPatch (RFC 6902)', () {
+    test('replace at a list index overwrites in-place (not insert)', () {
+      final doc = {'items': ['a', 'b', 'c']};
+      final out = applyJsonPatch(doc, [
+        {'op': 'replace', 'path': '/items/1', 'value': 'X'},
+      ]) as Map;
+      // Must be ['a', 'X', 'c'], NOT ['a', 'X', 'b', 'c'].
+      expect(out['items'], equals(['a', 'X', 'c']));
+    });
+
     test('replace a nested value', () {
       final doc = {
         'type': 'box',

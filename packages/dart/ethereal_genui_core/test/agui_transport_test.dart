@@ -32,9 +32,6 @@ void main() {
 
   group('applyStateDelta (STATE_DELTA via applyJsonPatch)', () {
     test('applies RFC-6902 replace op to spec on map keys', () {
-      // Note: the existing applyJsonPatch() implementation treats replace on a
-      // list index as an insert (RFC-6902 add semantics). For map keys,
-      // replace correctly overwrites the value.
       final initial = <String, dynamic>{
         'type': 'choices',
         'label': 'Pick one',
@@ -47,6 +44,20 @@ void main() {
       final resultMap = result as Map;
       expect(resultMap['label'], equals('Choose'));
       expect(resultMap['type'], equals('choices'));
+    });
+
+    test('applies RFC-6902 replace op to list index (in-place, not insert)', () {
+      // This is the scenario prescribed in the Task 3 brief:
+      // replace at /options/0 must overwrite index 0, not insert a new element.
+      final initial = <String, dynamic>{
+        'type': 'choices',
+        'options': ['A', 'B'],
+      };
+      final delta = StateDeltaEvent(delta: [
+        {'op': 'replace', 'path': '/options/0', 'value': 'C'},
+      ]);
+      final result = applyStateDelta(initial, delta) as Map;
+      expect(result['options'], equals(['C', 'B']));
     });
 
     test('applies add op', () {
@@ -156,7 +167,6 @@ void main() {
           'ui': {'type': 'choices', 'label': 'Pick one'},
         },
       ));
-      // Replace a map key (not a list index) to match applyJsonPatch behaviour.
       processor.processEvent(StateDeltaEvent(delta: [
         {'op': 'replace', 'path': '/label', 'value': 'Choose'},
       ]));
@@ -219,6 +229,57 @@ void main() {
           .firstWhere((m) => m['role'] == 'tool_call', orElse: () => {});
       expect(toolMsg['toolName'], equals('search'));
       expect(toolMsg['args'], equals('{"q":"AI"}'));
+    });
+  });
+
+  group('stateChangedToDelta', () {
+    test('returns null when states are identical', () {
+      final state = {'toggle': true, 'count': 1};
+      expect(stateChangedToDelta(state, Map.from(state)), isNull);
+    });
+
+    test('produces replace op for changed key', () {
+      final delta = stateChangedToDelta(
+        {'toggle': false, 'count': 1},
+        {'toggle': true, 'count': 1},
+      );
+      expect(delta, isNotNull);
+      expect(delta!.delta.length, equals(1));
+      expect(delta.delta[0]['op'], equals('replace'));
+      expect(delta.delta[0]['path'], equals('/toggle'));
+      expect(delta.delta[0]['value'], isTrue);
+    });
+
+    test('produces add op for new key', () {
+      final delta = stateChangedToDelta(
+        {'a': 1},
+        {'a': 1, 'b': 2},
+      );
+      expect(delta, isNotNull);
+      expect(delta!.delta.any((op) => op['op'] == 'add' && op['path'] == '/b'),
+          isTrue);
+    });
+
+    test('produces remove op for deleted key', () {
+      final delta = stateChangedToDelta(
+        {'a': 1, 'b': 2},
+        {'a': 1},
+      );
+      expect(delta, isNotNull);
+      expect(
+        delta!.delta.any((op) => op['op'] == 'remove' && op['path'] == '/b'),
+        isTrue,
+      );
+    });
+
+    test('generated delta round-trips through applyStateDelta', () {
+      final oldState = <String, dynamic>{'x': 10, 'y': 20};
+      final newState = <String, dynamic>{'x': 99, 'z': 30};
+      final delta = stateChangedToDelta(oldState, newState)!;
+      final result = applyStateDelta(oldState, delta) as Map;
+      expect(result['x'], equals(99));
+      expect(result['z'], equals(30));
+      expect(result.containsKey('y'), isFalse);
     });
   });
 }

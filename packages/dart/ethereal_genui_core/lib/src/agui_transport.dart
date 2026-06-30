@@ -61,21 +61,26 @@ Object? applyStateDelta(Object? currentSpec, BaseEvent event) {
   return applyJsonPatch(currentSpec, event.delta);
 }
 
-/// Computes an RFC-6902 diff between [oldState] and [newState] and returns
-/// a [StateDeltaEvent] containing the patch operations.
+/// Computes a [StateDeltaEvent] that transforms [oldState] into [newState].
 ///
-/// Uses a shallow replace-all strategy: added keys produce `add` ops, changed
-/// values produce `replace` ops, and removed keys produce `remove` ops.
+/// Produces RFC-6902 `add`, `replace`, and `remove` ops for every top-level
+/// key that was added, changed, or removed. Nested values are replaced as a
+/// whole (no deep structural diff).
 ///
-/// [runId] and [seq] are accepted for API completeness and future protocol
-/// extensions; they are not embedded in the returned [StateDeltaEvent] because
-/// the AG-UI 0.3 [StateDeltaEvent] type does not carry per-run or sequence
-/// identifiers.
-StateDeltaEvent stateChangedToDelta(
+/// Returns `null` when [oldState] and [newState] are identical so callers can
+/// skip a no-op upstream send.
+///
+/// Example:
+/// ```dart
+/// final delta = stateChangedToDelta(
+///   {'toggle': false, 'count': 1},
+///   {'toggle': true,  'count': 1},
+/// );
+/// // delta?.delta == [{'op': 'replace', 'path': '/toggle', 'value': true}]
+/// ```
+StateDeltaEvent? stateChangedToDelta(
   Map<String, dynamic> oldState,
   Map<String, dynamic> newState,
-  String runId,
-  String seq,
 ) {
   final ops = <Map<String, dynamic>>[];
   for (final key in newState.keys) {
@@ -91,6 +96,7 @@ StateDeltaEvent stateChangedToDelta(
       ops.add({'op': 'remove', 'path': '/$key'});
     }
   }
+  if (ops.isEmpty) return null;
   return StateDeltaEvent(delta: ops);
 }
 
@@ -231,13 +237,8 @@ class AguiEventProcessor {
 
       case EventType.runFinished:
         isRunning = false;
-        // Finalise any dangling streaming text.
-        if (streamingText != null) {
-          streamingText = null;
-          _notifyListeners();
-        } else {
-          _notifyListeners();
-        }
+        streamingText = null; // finalise any dangling text buffer
+        _notifyListeners();
         return true;
 
       case EventType.runError:

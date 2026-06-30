@@ -30,7 +30,7 @@ Object? _applyOne(Object? doc, Map op) {
     case 'add':
       return _add(doc, _tokens(path), op['value']);
     case 'replace':
-      return _add(doc, _tokens(path), op['value']);
+      return _replace(doc, _tokens(path), op['value']);
     case 'remove':
       return _remove(doc, _tokens(path));
     case 'move':
@@ -89,6 +89,29 @@ Object? _add(Object? doc, List<String> tokens, Object? value) {
     }
   } else {
     throw StateError('cannot add to non-container');
+  }
+  return doc;
+}
+
+/// RFC-6902 `replace`: overwrite an existing value at [tokens].
+///
+/// For Map targets this is identical to `_add` (both overwrite). For List
+/// targets `_add` inserts (shifting elements right) but `replace` must
+/// overwrite in-place — hence the separate function.
+Object? _replace(Object? doc, List<String> tokens, Object? value) {
+  if (tokens.isEmpty) return _clone(value);
+  final parent = _get(doc, tokens.sublist(0, tokens.length - 1));
+  final last = tokens.last;
+  if (parent is Map) {
+    parent[last] = _clone(value);
+  } else if (parent is List) {
+    final i = int.parse(last);
+    if (i < 0 || i >= parent.length) {
+      throw RangeError.index(i, parent, 'replace', 'index out of range');
+    }
+    parent[i] = _clone(value);
+  } else {
+    throw StateError('cannot replace in non-container');
   }
   return doc;
 }

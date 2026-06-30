@@ -139,17 +139,12 @@ class AguiFlutterAdapter extends ChangeNotifier {
   /// (fire-and-forget), then applies the patch locally so the processor
   /// stays consistent.
   void onWidgetStateChanged(Map<String, dynamic> newWidgetState) {
-    final delta = stateChangedToDelta(
-      _processor.widgetState,
-      newWidgetState,
-      '',
-      '',
-    );
-    if (delta.delta.isEmpty) return;
+    final delta = stateChangedToDelta(_processor.widgetState, newWidgetState);
+    if (delta == null) return;
     // Forward delta upstream — fire-and-forget.
     _agent.sendEvent(delta);
     // Apply locally so the processor stays consistent.
-    final patched = applyJsonPatch(_processor.widgetState, delta.delta);
+    final patched = applyStateDelta(_processor.widgetState, delta);
     if (patched is Map<String, dynamic>) {
       _processor.widgetState = patched;
     } else if (patched is Map) {
