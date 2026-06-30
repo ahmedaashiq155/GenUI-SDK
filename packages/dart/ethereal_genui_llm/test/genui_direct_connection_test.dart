@@ -76,7 +76,9 @@ void main() {
       // First adapter call: tool invocation
       adapter.addResponse([
         const GenUiToolCallEvent(
-            name: 'get_weather', args: {'city': 'Sydney'}),
+            id: 'call_test_123',
+            name: 'get_weather',
+            args: {'city': 'Sydney'}),
         const GenUiStopEvent(stopReason: 'tool_use'),
       ]);
 
@@ -125,8 +127,14 @@ void main() {
       expect(history.length, equals(4));
       expect(history[0].role, equals('user'));
       expect(history[1].role, equals('assistant'));
+      // Assistant turn carries the structured tool call with the provider id
+      expect(history[1].toolCalls, isNotNull);
+      expect(history[1].toolCalls!.length, equals(1));
+      expect(history[1].toolCalls!.first.id, equals('call_test_123'));
+      expect(history[1].toolCalls!.first.name, equals('get_weather'));
       expect(history[2].role, equals('tool'));
       expect(history[2].toolResult!.toolName, equals('get_weather'));
+      expect(history[2].toolResult!.toolCallId, equals('call_test_123'));
       expect(history[3].role, equals('assistant'));
       expect(history[3].content, contains('Sydney'));
     });
@@ -174,7 +182,7 @@ void main() {
 
       adapter.addResponse([
         const GenUiToolCallEvent(
-            name: 'search', args: {'q': 'hello'}, id: 'call_abc123'),
+            id: 'call_abc123', name: 'search', args: {'q': 'hello'}),
         const GenUiStopEvent(stopReason: 'tool_use'),
       ]);
       adapter.addResponse([
@@ -198,8 +206,9 @@ void main() {
       final history = connection.history;
       // Assistant turn should carry the tool call with the provider id
       final assistantTurn = history[1];
-      expect(assistantTurn.toolCall, isNotNull);
-      expect(assistantTurn.toolCall!.id, equals('call_abc123'));
+      expect(assistantTurn.toolCalls, isNotNull);
+      expect(assistantTurn.toolCalls!.length, equals(1));
+      expect(assistantTurn.toolCalls!.first.id, equals('call_abc123'));
 
       // Tool result should carry the same id for replay
       final toolTurn = history[2];
@@ -208,7 +217,87 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    // 5. reset()
+    // 5. Parallel tool calls (two tool calls in a single turn)
+    // -----------------------------------------------------------------------
+    test('parallel tool calls: both handlers called, one assistant msg with two toolCalls',
+        () async {
+      final adapter = MockAdapter();
+
+      // First adapter call: two tool calls emitted before stop
+      adapter.addResponse([
+        const GenUiToolCallEvent(
+            id: 'call_parallel_1', name: 'getTime', args: {}),
+        const GenUiToolCallEvent(
+            id: 'call_parallel_2', name: 'getDate', args: {}),
+        const GenUiStopEvent(stopReason: 'tool_use'),
+      ]);
+
+      // Second adapter call: final text after both tool results
+      adapter.addResponse([
+        const GenUiTextChunk('The time is 12:00 and the date is today.'),
+        const GenUiStopEvent(stopReason: 'end_turn'),
+      ]);
+
+      final connection = GenUiDirectConnection(
+        adapter: adapter,
+        injectGenUiCatalogue: false,
+      );
+
+      int getTimeCallCount = 0;
+      int getDateCallCount = 0;
+
+      connection.registerTool(
+        name: 'getTime',
+        description: 'Get current time',
+        parameters: {'type': 'object', 'properties': {}},
+        handler: (_) async {
+          getTimeCallCount++;
+          return '12:00';
+        },
+      );
+      connection.registerTool(
+        name: 'getDate',
+        description: 'Get current date',
+        parameters: {'type': 'object', 'properties': {}},
+        handler: (_) async {
+          getDateCallCount++;
+          return '2026-06-30';
+        },
+      );
+
+      await for (final _ in connection.sendMessage('What time and date is it?')) {}
+
+      // Both handlers called exactly once
+      expect(getTimeCallCount, equals(1));
+      expect(getDateCallCount, equals(1));
+
+      // History: user + assistant(2 toolCalls) + tool(getTime) + tool(getDate) + assistant(final)
+      final history = connection.history;
+      expect(history.length, equals(5));
+      expect(history[0].role, equals('user'));
+
+      // One assistant message carrying both tool calls
+      expect(history[1].role, equals('assistant'));
+      expect(history[1].toolCalls, isNotNull);
+      expect(history[1].toolCalls!.length, equals(2));
+      expect(history[1].toolCalls!.map((tc) => tc.id).toList(),
+          containsAll(['call_parallel_1', 'call_parallel_2']));
+
+      // Two separate tool result messages
+      expect(history[2].role, equals('tool'));
+      expect(history[2].toolResult!.toolName, equals('getTime'));
+      expect(history[2].toolResult!.toolCallId, equals('call_parallel_1'));
+      expect(history[3].role, equals('tool'));
+      expect(history[3].toolResult!.toolName, equals('getDate'));
+      expect(history[3].toolResult!.toolCallId, equals('call_parallel_2'));
+
+      // Final text assistant turn
+      expect(history[4].role, equals('assistant'));
+      expect(history[4].content, contains('12:00'));
+    });
+
+    // -----------------------------------------------------------------------
+    // 6. reset()
     // -----------------------------------------------------------------------
     test('reset() clears conversation history', () async {
       final adapter = MockAdapter();

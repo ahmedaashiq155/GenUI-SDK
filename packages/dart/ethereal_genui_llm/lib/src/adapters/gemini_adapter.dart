@@ -5,12 +5,9 @@ import '../genui_llm_adapter.dart';
 
 /// Streams from Google Gemini's generateContent endpoint using SSE.
 ///
-/// Maps Gemini's `model` role to `assistant`, extracts text parts from
-/// candidates, and emits [GenUiStopEvent] on non-null finishReason.
-///
-/// Note: Gemini tool-use support is basic (text-only at this stage).
-/// Tool definitions are not sent to the API in this adapter; full function
-/// calling support can be added in a future iteration.
+/// Handles function calling via Gemini's `functionCall` / `functionResponse`
+/// Part types. Because Gemini does not assign separate call IDs, the tool
+/// name is used as the call ID (one call per tool name per turn).
 class GeminiAdapter implements GenUiLlmAdapter {
   GeminiAdapter({
     required this.apiKey,
@@ -31,10 +28,46 @@ class GeminiAdapter implements GenUiLlmAdapter {
     for (final msg in history) {
       if (msg.role == 'system') {
         systemInstruction = msg.content;
-      } else {
-        final role = msg.role == 'assistant' ? 'model' : 'user';
+      } else if (msg.role == 'assistant') {
+        // Reconstruct the model turn with text and/or functionCall parts.
+        final parts = <Map<String, dynamic>>[];
+        if (msg.content != null && msg.content!.isNotEmpty) {
+          parts.add({'text': msg.content!});
+        }
+        if (msg.toolCalls != null) {
+          for (final tc in msg.toolCalls!) {
+            parts.add({
+              'functionCall': {
+                'name': tc.name,
+                'args': tc.args,
+              }
+            });
+          }
+        }
+        if (parts.isNotEmpty) {
+          contents.add({'role': 'model', 'parts': parts});
+        }
+      } else if (msg.role == 'tool') {
+        // Each tool result goes as a user message with a functionResponse part.
+        // The Gemini API field is `functionResponse` (not `functionResult`).
+        final tr = msg.toolResult!;
         contents.add({
-          'role': role,
+          'role': 'user',
+          'parts': [
+            {
+              'functionResponse': {
+                'name': tr.toolName,
+                'response': tr.result is Map
+                    ? tr.result as Map<String, dynamic>
+                    : {'result': tr.result},
+              }
+            }
+          ],
+        });
+      } else {
+        // 'user' role
+        contents.add({
+          'role': 'user',
           'parts': [
             {'text': msg.content ?? ''}
           ],
@@ -51,6 +84,19 @@ class GeminiAdapter implements GenUiLlmAdapter {
           {'text': systemInstruction}
         ],
       };
+    }
+    if (tools.isNotEmpty) {
+      body['tools'] = [
+        {
+          'functionDeclarations': tools
+              .map((t) => {
+                    'name': t.name,
+                    'description': t.description,
+                    'parameters': t.parameters,
+                  })
+              .toList(),
+        }
+      ];
     }
 
     final uri = Uri.parse(
@@ -82,6 +128,16 @@ class GeminiAdapter implements GenUiLlmAdapter {
         for (final part in parts ?? []) {
           if (part['text'] != null) {
             yield GenUiTextChunk(part['text'] as String);
+          } else if (part['functionCall'] != null) {
+            final fc = part['functionCall'] as Map<String, dynamic>;
+            final name = fc['name'] as String;
+            yield GenUiToolCallEvent(
+              // Gemini has no separate call ID — use the name as a stable
+              // stand-in so GenUiToolCall.id is always non-null.
+              id: name,
+              name: name,
+              args: (fc['args'] as Map<String, dynamic>?) ?? {},
+            );
           }
         }
 

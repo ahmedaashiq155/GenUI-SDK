@@ -24,50 +24,58 @@ class AnthropicAdapter implements GenUiLlmAdapter {
     List<GenUiMessage> history,
     List<GenUiToolDef> tools,
   ) async* {
-    // Build Anthropic messages format; system message is handled separately
+    // Build Anthropic messages format; system message is handled separately.
+    // Consecutive tool-result messages are grouped into a single user message.
     String? systemPrompt;
     final messages = <Map<String, dynamic>>[];
 
-    for (final msg in history) {
+    int i = 0;
+    while (i < history.length) {
+      final msg = history[i];
       if (msg.role == 'system') {
         systemPrompt = msg.content;
+        i++;
       } else if (msg.role == 'user') {
         messages.add({'role': 'user', 'content': msg.content ?? ''});
+        i++;
       } else if (msg.role == 'assistant') {
-        // If this assistant turn included a tool call, reconstruct the
-        // Anthropic content array: optional text block + tool_use block.
-        // Without the tool_use block here, the subsequent tool_result has
+        // Reconstruct Anthropic content array: optional text block + tool_use
+        // blocks. Without the tool_use blocks, the subsequent tool_result has
         // no matching tool_use_id and Anthropic returns 400.
-        if (msg.toolCall != null) {
-          final tc = msg.toolCall!;
+        if (msg.toolCalls != null && msg.toolCalls!.isNotEmpty) {
           final contentBlocks = <Map<String, dynamic>>[];
           if (msg.content != null && msg.content!.isNotEmpty) {
             contentBlocks.add({'type': 'text', 'text': msg.content});
           }
-          contentBlocks.add({
-            'type': 'tool_use',
-            'id': tc.id ?? tc.name, // fall back to name when no ID
-            'name': tc.name,
-            'input': tc.args,
-          });
+          for (final tc in msg.toolCalls!) {
+            contentBlocks.add({
+              'type': 'tool_use',
+              'id': tc.id,
+              'name': tc.name,
+              'input': tc.args,
+            });
+          }
           messages.add({'role': 'assistant', 'content': contentBlocks});
         } else {
           messages.add({'role': 'assistant', 'content': msg.content ?? ''});
         }
+        i++;
       } else if (msg.role == 'tool') {
-        // Tool results go as user messages in Anthropic format.
-        // tool_use_id must match the id on the preceding tool_use block.
-        final tr = msg.toolResult!;
-        messages.add({
-          'role': 'user',
-          'content': [
-            {
-              'type': 'tool_result',
-              'tool_use_id': tr.toolCallId ?? tr.toolName,
-              'content': jsonEncode(tr.result),
-            }
-          ],
-        });
+        // Collect ALL consecutive tool messages into one user message with
+        // multiple tool_result entries (required by Anthropic API).
+        final toolResults = <Map<String, dynamic>>[];
+        while (i < history.length && history[i].role == 'tool') {
+          final tr = history[i].toolResult!;
+          toolResults.add({
+            'type': 'tool_result',
+            'tool_use_id': tr.toolCallId,
+            'content': jsonEncode(tr.result),
+          });
+          i++;
+        }
+        messages.add({'role': 'user', 'content': toolResults});
+      } else {
+        i++;
       }
     }
 
@@ -127,7 +135,8 @@ class AnthropicAdapter implements GenUiLlmAdapter {
           final block = json['content_block'] as Map<String, dynamic>?;
           if (block?['type'] == 'tool_use') {
             currentToolName = block!['name'] as String;
-            currentToolId = block['id'] as String?;
+            // Anthropic always provides an id for tool_use blocks (toolu_xxx).
+            currentToolId = block['id'] as String;
             toolInputBuffer.clear();
           }
         } else if (type == 'content_block_stop') {
@@ -137,7 +146,10 @@ class AnthropicAdapter implements GenUiLlmAdapter {
                 ? <String, dynamic>{}
                 : jsonDecode(rawInput) as Map<String, dynamic>;
             yield GenUiToolCallEvent(
-                name: currentToolName, args: args, id: currentToolId);
+              id: currentToolId!,
+              name: currentToolName,
+              args: args,
+            );
             currentToolName = null;
             currentToolId = null;
           }

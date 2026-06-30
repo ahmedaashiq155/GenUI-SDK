@@ -79,7 +79,10 @@ class GenUiDirectConnection {
     while (looping) {
       looping = false;
       assistantBuffer = '';
-      GenUiToolCallEvent? pendingToolCall;
+
+      // Collect ALL tool calls emitted during this turn before executing any,
+      // since a single turn may contain multiple parallel tool calls.
+      final pendingCalls = <GenUiToolCallEvent>[];
 
       await for (final event
           in _adapter.stream(historyWithSystem, _tools.map((t) => t.def).toList())) {
@@ -87,50 +90,47 @@ class GenUiDirectConnection {
           assistantBuffer += event.delta;
           yield parseSegments(assistantBuffer);
         } else if (event is GenUiToolCallEvent) {
-          pendingToolCall = event;
-        } else if (event is GenUiStopEvent) {
-          if (pendingToolCall != null) {
-            // Record assistant turn with the tool-call metadata so adapters
-            // can reconstruct the provider-specific tool_use block on replay.
-            _history.add(GenUiMessage(
-              role: 'assistant',
-              content: assistantBuffer.isEmpty ? null : assistantBuffer,
-              toolCall: GenUiToolCall(
-                name: pendingToolCall.name,
-                args: pendingToolCall.args,
-                id: pendingToolCall.id,
-              ),
-            ));
-            historyWithSystem.add(_history.last);
-
-            // Find and execute the tool handler
-            final tool = _tools.firstWhere(
-              (t) => t.def.name == pendingToolCall!.name,
-              orElse: () =>
-                  throw StateError('Tool not found: ${pendingToolCall!.name}'),
-            );
-            final result = await tool.handler(pendingToolCall.args);
-
-            // Record tool result with the matching call ID for correct replay
-            final toolMsg = GenUiMessage(
-              role: 'tool',
-              toolResult: GenUiToolResult(
-                toolName: pendingToolCall.name,
-                result: result,
-                toolCallId: pendingToolCall.id,
-              ),
-            );
-            _history.add(toolMsg);
-            historyWithSystem.add(toolMsg);
-
-            looping = true; // re-prompt after tool result
-            pendingToolCall = null;
-          }
+          pendingCalls.add(event);
         }
+        // GenUiStopEvent: nothing to do; we check pendingCalls after stream ends.
+      }
+
+      if (pendingCalls.isNotEmpty) {
+        // Store assistant turn with all structured tool calls.
+        final assistantMsg = GenUiMessage(
+          role: 'assistant',
+          content: assistantBuffer.isEmpty ? null : assistantBuffer,
+          toolCalls: pendingCalls
+              .map((e) => GenUiToolCall(id: e.id, name: e.name, args: e.args))
+              .toList(),
+        );
+        _history.add(assistantMsg);
+        historyWithSystem.add(assistantMsg);
+
+        // Execute all tool handlers and store results.
+        for (final call in pendingCalls) {
+          final tool = _tools.firstWhere(
+            (t) => t.def.name == call.name,
+            orElse: () => throw StateError('Tool not found: ${call.name}'),
+          );
+          final result = await tool.handler(call.args);
+          final toolMsg = GenUiMessage(
+            role: 'tool',
+            toolResult: GenUiToolResult(
+              toolName: call.name,
+              result: result,
+              toolCallId: call.id,
+            ),
+          );
+          _history.add(toolMsg);
+          historyWithSystem.add(toolMsg);
+        }
+
+        looping = true; // re-prompt after tool results
       }
     }
 
-    // Record final assistant turn
+    // Record final assistant turn (text-only response with no tool calls).
     if (assistantBuffer.isNotEmpty) {
       _history.add(GenUiMessage(role: 'assistant', content: assistantBuffer));
     }

@@ -31,28 +31,27 @@ class OpenAiAdapter implements GenUiLlmAdapter {
         messages.add({
           'role': 'tool',
           'content': jsonEncode(tr.result),
-          'tool_call_id': tr.toolCallId ?? tr.toolName,
+          'tool_call_id': tr.toolCallId,
         });
-      } else if (msg.role == 'assistant' && msg.toolCall != null) {
+      } else if (msg.role == 'assistant' &&
+          msg.toolCalls != null &&
+          msg.toolCalls!.isNotEmpty) {
         // Reconstruct the assistant message with a tool_calls array so OpenAI
-        // can match the subsequent tool result. Without this, OpenAI returns 400.
-        final tc = msg.toolCall!;
+        // can match the subsequent tool results. Without this, OpenAI returns 400.
         final entry = <String, dynamic>{
           'role': 'assistant',
-          'tool_calls': [
-            {
-              'id': tc.id ?? tc.name,
-              'type': 'function',
-              'function': {
-                'name': tc.name,
-                'arguments': jsonEncode(tc.args),
-              },
-            }
-          ],
+          'content': msg.content, // may be null; OpenAI accepts null here
+          'tool_calls': msg.toolCalls!
+              .map((tc) => {
+                    'id': tc.id,
+                    'type': 'function',
+                    'function': {
+                      'name': tc.name,
+                      'arguments': jsonEncode(tc.args),
+                    },
+                  })
+              .toList(),
         };
-        if (msg.content != null && msg.content!.isNotEmpty) {
-          entry['content'] = msg.content;
-        }
         messages.add(entry);
       } else {
         messages.add({'role': msg.role, 'content': msg.content ?? ''});
@@ -100,12 +99,19 @@ class OpenAiAdapter implements GenUiLlmAdapter {
       if (line.startsWith('data: ')) {
         final data = line.substring(6).trim();
         if (data == '[DONE]') {
-          for (final tc in toolCallsById.values) {
+          for (final entry in toolCallsById.entries) {
+            final tc = entry.value;
             final rawArgs = tc.args.toString();
             final args = rawArgs.isEmpty
                 ? <String, dynamic>{}
                 : jsonDecode(rawArgs) as Map<String, dynamic>;
-            yield GenUiToolCallEvent(name: tc.name, args: args, id: tc.id);
+            // OpenAI always provides a tool call id; use the name as a
+            // fallback only to be defensive (should not happen in practice).
+            yield GenUiToolCallEvent(
+              id: tc.id ?? tc.name,
+              name: tc.name,
+              args: args,
+            );
           }
           yield const GenUiStopEvent(stopReason: 'stop');
           continue;

@@ -28,17 +28,16 @@ class GenUiTextChunk extends GenUiStreamEvent {
 
 class GenUiToolCallEvent extends GenUiStreamEvent {
   const GenUiToolCallEvent({
+    required this.id,
     required this.name,
     required this.args,
-    this.id,
   });
+
+  /// Provider-assigned tool-call ID. For providers without native IDs (Gemini),
+  /// use the tool name as a stable stand-in.
+  final String id;
   final String name;
   final Map<String, dynamic> args;
-
-  /// Provider-assigned tool-call ID. Required by Anthropic and OpenAI when
-  /// replaying the assistant turn that contained the tool call. Null for
-  /// providers that do not assign IDs (e.g. Gemini).
-  final String? id;
 }
 
 class GenUiStopEvent extends GenUiStreamEvent {
@@ -52,7 +51,7 @@ class GenUiMessage {
     required this.role,
     this.content,
     this.toolResult,
-    this.toolCall,
+    this.toolCalls,
   });
 
   /// Role: 'user' | 'assistant' | 'tool' | 'system'
@@ -62,11 +61,11 @@ class GenUiMessage {
   /// Present on role='tool' messages — the result to feed back to the LLM.
   final GenUiToolResult? toolResult;
 
-  /// Present on role='assistant' messages that triggered a tool call.
-  /// Carried so adapters can reconstruct the provider-specific tool-call block
-  /// (Anthropic tool_use block, OpenAI tool_calls array) on message replay,
-  /// which is required for multi-turn tool use to succeed.
-  final GenUiToolCall? toolCall;
+  /// Present on role='assistant' messages that triggered tool calls.
+  /// A single turn may invoke multiple tools in parallel (non-null, non-empty
+  /// list). Adapters use this to reconstruct the provider-specific tool-call
+  /// block (Anthropic tool_use block, OpenAI tool_calls array) on replay.
+  final List<GenUiToolCall>? toolCalls;
 }
 
 /// Tool-call metadata stored on the assistant turn that triggered the call.
@@ -75,15 +74,16 @@ class GenUiMessage {
 /// for OpenAI).
 class GenUiToolCall {
   const GenUiToolCall({
+    required this.id,
     required this.name,
     required this.args,
-    this.id,
   });
+
+  /// Provider-assigned call ID. For Gemini (no native ID), the tool name is
+  /// used as a stable stand-in.
+  final String id;
   final String name;
   final Map<String, dynamic> args;
-
-  /// Provider-assigned call ID (null for providers that don't issue IDs).
-  final String? id;
 }
 
 /// Result of a tool invocation to feed back to the LLM.
@@ -91,7 +91,7 @@ class GenUiToolResult {
   const GenUiToolResult({
     required this.toolName,
     required this.result,
-    this.toolCallId,
+    required this.toolCallId,
   });
   final String toolName;
   final dynamic result;
@@ -99,7 +99,7 @@ class GenUiToolResult {
   /// The provider-assigned ID of the tool call this result corresponds to.
   /// Must match [GenUiToolCall.id] on the preceding assistant message for
   /// Anthropic (tool_result.tool_use_id) and OpenAI (tool message.tool_call_id).
-  final String? toolCallId;
+  final String toolCallId;
 }
 
 /// Tool definition exposed to the LLM.
