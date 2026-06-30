@@ -1,6 +1,6 @@
 import React, {
   createContext, useContext, useMemo, useRef,
-  useSyncExternalStore,
+  useSyncExternalStore, useState, useCallback,
 } from 'react'
 import { GenUiStore, StorageAdapter } from './store.js'
 
@@ -63,4 +63,38 @@ export function useGenUiActions(): GenUiActions {
   const ctx = useContext(GenUiContext)
   if (!ctx) throw new Error('useGenUiActions must be inside GenUiProvider')
   return ctx.actions
+}
+
+/**
+ * Returns the store if inside a GenUiProvider, null otherwise.
+ * Use this in renderers so they work with OR without a provider.
+ */
+export function useOptionalGenUiStore(): GenUiStore | null {
+  const ctx = useContext(GenUiContext)
+  return ctx?.store ?? null
+}
+
+/**
+ * State hook that mirrors Dart's GenUiPersistedState mixin.
+ * If `id` is set and a GenUiProvider is present, persists value to the store.
+ * If no id or no provider, behaves as plain local state.
+ */
+export function usePersistedState<T>(
+  id: string | undefined,
+  defaultValue: T
+): [T, (v: T) => void] {
+  const store = useOptionalGenUiStore()
+  const [value, setLocal] = useState<T>(() => {
+    if (!id || !store) return defaultValue
+    const stored = store.getValue(id)
+    return stored !== undefined ? (stored as T) : defaultValue
+  })
+  const setValue = useCallback(
+    (v: T) => {
+      setLocal(v)
+      if (id && store) store.setValue(id, v)
+    },
+    [id, store]
+  )
+  return [value, setValue]
 }
