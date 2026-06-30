@@ -25,6 +25,12 @@ import { DividerRenderer } from './renderers/DividerRenderer.js'
 import { CalculatorRenderer } from './renderers/CalculatorRenderer.js'
 import { ConverterRenderer } from './renderers/ConverterRenderer.js'
 import { TimerRenderer } from './renderers/TimerRenderer.js'
+import { SectionRenderer } from './renderers/SectionRenderer.js'
+import { GridRenderer } from './renderers/GridRenderer.js'
+import { ColumnsRenderer } from './renderers/ColumnsRenderer.js'
+import { AccordionRenderer } from './renderers/AccordionRenderer.js'
+import { TabsRenderer } from './renderers/TabsRenderer.js'
+import { WhenRenderer } from './renderers/WhenRenderer.js'
 
 export interface GenUiBlockProps {
   spec: Record<string, unknown>
@@ -62,6 +68,12 @@ export function GenUiBlock({ spec, onSend, className, style }: GenUiBlockProps) 
     case 'calculator': return <CalculatorRenderer spec={spec} onSend={onSend} className={className} style={style} />
     case 'converter':  return <ConverterRenderer  spec={spec} onSend={onSend} className={className} style={style} />
     case 'timer':      return <TimerRenderer      spec={spec} onSend={onSend} className={className} style={style} />
+    case 'section':    return <SectionRenderer    spec={spec} onSend={onSend} className={className} style={style} />
+    case 'grid':       return <GridRenderer       spec={spec} onSend={onSend} className={className} style={style} />
+    case 'columns':    return <ColumnsRenderer    spec={spec} onSend={onSend} className={className} style={style} />
+    case 'accordion':  return <AccordionRenderer  spec={spec} onSend={onSend} className={className} style={style} />
+    case 'tabs':       return <TabsRenderer       spec={spec} onSend={onSend} className={className} style={style} />
+    case 'when':       return <WhenRenderer       spec={spec} onSend={onSend} className={className} style={style} />
     default:           return null
   }
 }
