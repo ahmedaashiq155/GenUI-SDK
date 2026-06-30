@@ -2,4 +2,10 @@ name: ethereal_genui_core
 version: 0.2.0
 environment:
   sdk: ^3.12.2
-# Zero dependencies — intentional
+# ag_ui brings in http + meta; added to support the AG-UI native transport layer.
+dependencies:
+  ag_ui: ^0.3.0
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0

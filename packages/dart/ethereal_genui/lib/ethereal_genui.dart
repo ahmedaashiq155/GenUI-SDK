@@ -30,6 +30,9 @@ export 'src/genui_state.dart';
 export 'src/genui_theme.dart';
 export 'src/genui_common.dart' show GenUi;
 
+// AG-UI Flutter adapter
+export 'src/agui_flutter_adapter.dart';
+
 // Renderers / helpers used directly by hosts (the rest are registry-internal).
 export 'src/renderers/artifact.dart' show ArtifactRenderer;
 export 'src/renderers/tool_call.dart' show ToolCallRenderer;

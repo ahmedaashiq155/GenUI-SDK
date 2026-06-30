@@ -15,6 +15,7 @@ dependencies:
   flutter:
     sdk: flutter
   fl_chart: ^0.69.0
+  ag_ui: ^0.3.0
   ethereal_genui_core:
     path: ../ethereal_genui_core
   ethereal_genui_llm:
