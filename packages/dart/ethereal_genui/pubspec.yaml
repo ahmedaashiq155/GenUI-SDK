@@ -17,6 +17,8 @@ dependencies:
   fl_chart: ^0.69.0
   ethereal_genui_core:
     path: ../ethereal_genui_core
+  ethereal_genui_llm:
+    path: ../ethereal_genui_llm
 
 dev_dependencies:
   flutter_test:

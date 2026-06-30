@@ -1,0 +1,18 @@
+name: ethereal_genui_llm
+version: 0.2.0
+description: >-
+  Zero-backend direct LLM connection for Ethereal GenUI. Provides streaming
+  adapters for Anthropic, OpenAI, and Gemini with a full tool-use loop and
+  automatic system-prompt injection.
+publish_to: "none"
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  ethereal_genui_core:
+    path: ../ethereal_genui_core
+  http: ^1.2.0
+
+dev_dependencies:
+  test: ^1.24.0
