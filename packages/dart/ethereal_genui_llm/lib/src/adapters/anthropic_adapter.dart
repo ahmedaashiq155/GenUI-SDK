@@ -132,8 +132,10 @@ class AnthropicAdapter implements GenUiLlmAdapter {
           }
         } else if (type == 'content_block_stop') {
           if (currentToolName != null) {
-            final args =
-                jsonDecode(toolInputBuffer.toString()) as Map<String, dynamic>;
+            final rawInput = toolInputBuffer.toString();
+            final args = rawInput.isEmpty
+                ? <String, dynamic>{}
+                : jsonDecode(rawInput) as Map<String, dynamic>;
             yield GenUiToolCallEvent(
                 name: currentToolName, args: args, id: currentToolId);
             currentToolName = null;

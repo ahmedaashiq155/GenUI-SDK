@@ -90,9 +90,9 @@ class OpenAiAdapter implements GenUiLlmAdapter {
       throw Exception('OpenAI API error ${response.statusCode}: $errorBody');
     }
 
-    String? pendingToolName;
-    String? pendingToolId;
-    final toolArgBuffer = StringBuffer();
+    // Map from tool_calls[].index → (name, id, argsBuffer) for parallel calls.
+    final toolCallsById =
+        <int, ({String name, String? id, StringBuffer args})>{};
 
     await for (final line in response.stream
         .transform(utf8.decoder)
@@ -100,11 +100,12 @@ class OpenAiAdapter implements GenUiLlmAdapter {
       if (line.startsWith('data: ')) {
         final data = line.substring(6).trim();
         if (data == '[DONE]') {
-          if (pendingToolName != null) {
-            final args =
-                jsonDecode(toolArgBuffer.toString()) as Map<String, dynamic>;
-            yield GenUiToolCallEvent(
-                name: pendingToolName, args: args, id: pendingToolId);
+          for (final tc in toolCallsById.values) {
+            final rawArgs = tc.args.toString();
+            final args = rawArgs.isEmpty
+                ? <String, dynamic>{}
+                : jsonDecode(rawArgs) as Map<String, dynamic>;
+            yield GenUiToolCallEvent(name: tc.name, args: args, id: tc.id);
           }
           yield const GenUiStopEvent(stopReason: 'stop');
           continue;
@@ -122,17 +123,23 @@ class OpenAiAdapter implements GenUiLlmAdapter {
         if (delta['tool_calls'] != null) {
           final toolCalls = delta['tool_calls'] as List<dynamic>;
           for (final tc in toolCalls) {
-            // Capture the tool-call id from the first chunk that includes it
-            if (tc['id'] != null) {
-              pendingToolId = tc['id'] as String?;
-            }
+            final index = (tc['index'] as num).toInt();
             final fn = tc['function'] as Map<String, dynamic>?;
             if (fn?['name'] != null) {
-              pendingToolName = fn!['name'] as String;
-              toolArgBuffer.clear();
+              // First chunk for this index carries the name (and possibly id).
+              toolCallsById[index] = (
+                name: fn!['name'] as String,
+                id: tc['id'] as String?,
+                args: StringBuffer(),
+              );
+            } else if (tc['id'] != null && toolCallsById.containsKey(index)) {
+              // id may arrive in a subsequent chunk; update in place.
+              final existing = toolCallsById[index]!;
+              toolCallsById[index] =
+                  (name: existing.name, id: tc['id'] as String?, args: existing.args);
             }
-            if (fn?['arguments'] != null) {
-              toolArgBuffer.write(fn!['arguments'] as String);
+            if (fn?['arguments'] != null && toolCallsById.containsKey(index)) {
+              toolCallsById[index]!.args.write(fn!['arguments'] as String);
             }
           }
         }
