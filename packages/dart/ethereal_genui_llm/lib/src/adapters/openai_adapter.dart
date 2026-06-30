@@ -23,16 +23,41 @@ class OpenAiAdapter implements GenUiLlmAdapter {
     List<GenUiMessage> history,
     List<GenUiToolDef> tools,
   ) async* {
-    final messages = history.map((msg) {
+    final messages = <Map<String, dynamic>>[];
+    for (final msg in history) {
       if (msg.role == 'tool') {
-        return {
+        // tool_call_id must match the id on the preceding assistant tool_calls entry.
+        final tr = msg.toolResult!;
+        messages.add({
           'role': 'tool',
-          'content': jsonEncode(msg.toolResult!.result),
-          'tool_call_id': msg.toolResult!.toolName,
+          'content': jsonEncode(tr.result),
+          'tool_call_id': tr.toolCallId ?? tr.toolName,
+        });
+      } else if (msg.role == 'assistant' && msg.toolCall != null) {
+        // Reconstruct the assistant message with a tool_calls array so OpenAI
+        // can match the subsequent tool result. Without this, OpenAI returns 400.
+        final tc = msg.toolCall!;
+        final entry = <String, dynamic>{
+          'role': 'assistant',
+          'tool_calls': [
+            {
+              'id': tc.id ?? tc.name,
+              'type': 'function',
+              'function': {
+                'name': tc.name,
+                'arguments': jsonEncode(tc.args),
+              },
+            }
+          ],
         };
+        if (msg.content != null && msg.content!.isNotEmpty) {
+          entry['content'] = msg.content;
+        }
+        messages.add(entry);
+      } else {
+        messages.add({'role': msg.role, 'content': msg.content ?? ''});
       }
-      return {'role': msg.role, 'content': msg.content ?? ''};
-    }).toList();
+    }
 
     final body = <String, dynamic>{
       'model': model,
@@ -66,6 +91,7 @@ class OpenAiAdapter implements GenUiLlmAdapter {
     }
 
     String? pendingToolName;
+    String? pendingToolId;
     final toolArgBuffer = StringBuffer();
 
     await for (final line in response.stream
@@ -77,7 +103,8 @@ class OpenAiAdapter implements GenUiLlmAdapter {
           if (pendingToolName != null) {
             final args =
                 jsonDecode(toolArgBuffer.toString()) as Map<String, dynamic>;
-            yield GenUiToolCallEvent(name: pendingToolName, args: args);
+            yield GenUiToolCallEvent(
+                name: pendingToolName, args: args, id: pendingToolId);
           }
           yield const GenUiStopEvent(stopReason: 'stop');
           continue;
@@ -95,6 +122,10 @@ class OpenAiAdapter implements GenUiLlmAdapter {
         if (delta['tool_calls'] != null) {
           final toolCalls = delta['tool_calls'] as List<dynamic>;
           for (final tc in toolCalls) {
+            // Capture the tool-call id from the first chunk that includes it
+            if (tc['id'] != null) {
+              pendingToolId = tc['id'] as String?;
+            }
             final fn = tc['function'] as Map<String, dynamic>?;
             if (fn?['name'] != null) {
               pendingToolName = fn!['name'] as String;

@@ -34,16 +34,37 @@ class AnthropicAdapter implements GenUiLlmAdapter {
       } else if (msg.role == 'user') {
         messages.add({'role': 'user', 'content': msg.content ?? ''});
       } else if (msg.role == 'assistant') {
-        messages.add({'role': 'assistant', 'content': msg.content ?? ''});
+        // If this assistant turn included a tool call, reconstruct the
+        // Anthropic content array: optional text block + tool_use block.
+        // Without the tool_use block here, the subsequent tool_result has
+        // no matching tool_use_id and Anthropic returns 400.
+        if (msg.toolCall != null) {
+          final tc = msg.toolCall!;
+          final contentBlocks = <Map<String, dynamic>>[];
+          if (msg.content != null && msg.content!.isNotEmpty) {
+            contentBlocks.add({'type': 'text', 'text': msg.content});
+          }
+          contentBlocks.add({
+            'type': 'tool_use',
+            'id': tc.id ?? tc.name, // fall back to name when no ID
+            'name': tc.name,
+            'input': tc.args,
+          });
+          messages.add({'role': 'assistant', 'content': contentBlocks});
+        } else {
+          messages.add({'role': 'assistant', 'content': msg.content ?? ''});
+        }
       } else if (msg.role == 'tool') {
-        // Tool results go as user messages in Anthropic format
+        // Tool results go as user messages in Anthropic format.
+        // tool_use_id must match the id on the preceding tool_use block.
+        final tr = msg.toolResult!;
         messages.add({
           'role': 'user',
           'content': [
             {
               'type': 'tool_result',
-              'tool_use_id': msg.toolResult!.toolName,
-              'content': jsonEncode(msg.toolResult!.result),
+              'tool_use_id': tr.toolCallId ?? tr.toolName,
+              'content': jsonEncode(tr.result),
             }
           ],
         });
@@ -82,6 +103,7 @@ class AnthropicAdapter implements GenUiLlmAdapter {
     }
 
     String? currentToolName;
+    String? currentToolId;
     final toolInputBuffer = StringBuffer();
 
     await for (final line in response.stream
@@ -105,14 +127,17 @@ class AnthropicAdapter implements GenUiLlmAdapter {
           final block = json['content_block'] as Map<String, dynamic>?;
           if (block?['type'] == 'tool_use') {
             currentToolName = block!['name'] as String;
+            currentToolId = block['id'] as String?;
             toolInputBuffer.clear();
           }
         } else if (type == 'content_block_stop') {
           if (currentToolName != null) {
             final args =
                 jsonDecode(toolInputBuffer.toString()) as Map<String, dynamic>;
-            yield GenUiToolCallEvent(name: currentToolName, args: args);
+            yield GenUiToolCallEvent(
+                name: currentToolName, args: args, id: currentToolId);
             currentToolName = null;
+            currentToolId = null;
           }
         } else if (type == 'message_delta') {
           final delta = json['delta'] as Map<String, dynamic>?;

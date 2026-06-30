@@ -90,10 +90,16 @@ class GenUiDirectConnection {
           pendingToolCall = event;
         } else if (event is GenUiStopEvent) {
           if (pendingToolCall != null) {
-            // Record assistant turn (may have text before tool call)
+            // Record assistant turn with the tool-call metadata so adapters
+            // can reconstruct the provider-specific tool_use block on replay.
             _history.add(GenUiMessage(
               role: 'assistant',
               content: assistantBuffer.isEmpty ? null : assistantBuffer,
+              toolCall: GenUiToolCall(
+                name: pendingToolCall.name,
+                args: pendingToolCall.args,
+                id: pendingToolCall.id,
+              ),
             ));
             historyWithSystem.add(_history.last);
 
@@ -105,11 +111,14 @@ class GenUiDirectConnection {
             );
             final result = await tool.handler(pendingToolCall.args);
 
-            // Record tool result
+            // Record tool result with the matching call ID for correct replay
             final toolMsg = GenUiMessage(
               role: 'tool',
               toolResult: GenUiToolResult(
-                  toolName: pendingToolCall.name, result: result),
+                toolName: pendingToolCall.name,
+                result: result,
+                toolCallId: pendingToolCall.id,
+              ),
             );
             _history.add(toolMsg);
             historyWithSystem.add(toolMsg);

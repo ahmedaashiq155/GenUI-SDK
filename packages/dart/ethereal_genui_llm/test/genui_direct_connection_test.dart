@@ -167,7 +167,48 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    // 4. reset()
+    // 4. Tool-call IDs are threaded through history for correct replay
+    // -----------------------------------------------------------------------
+    test('tool-call id is stored on assistant turn and tool result', () async {
+      final adapter = MockAdapter();
+
+      adapter.addResponse([
+        const GenUiToolCallEvent(
+            name: 'search', args: {'q': 'hello'}, id: 'call_abc123'),
+        const GenUiStopEvent(stopReason: 'tool_use'),
+      ]);
+      adapter.addResponse([
+        const GenUiTextChunk('Done.'),
+        const GenUiStopEvent(stopReason: 'end_turn'),
+      ]);
+
+      final connection = GenUiDirectConnection(
+        adapter: adapter,
+        injectGenUiCatalogue: false,
+      );
+      connection.registerTool(
+        name: 'search',
+        description: 'Search',
+        parameters: {'type': 'object', 'properties': {}},
+        handler: (_) async => 'result',
+      );
+
+      await for (final _ in connection.sendMessage('search for hello')) {}
+
+      final history = connection.history;
+      // Assistant turn should carry the tool call with the provider id
+      final assistantTurn = history[1];
+      expect(assistantTurn.toolCall, isNotNull);
+      expect(assistantTurn.toolCall!.id, equals('call_abc123'));
+
+      // Tool result should carry the same id for replay
+      final toolTurn = history[2];
+      expect(toolTurn.toolResult, isNotNull);
+      expect(toolTurn.toolResult!.toolCallId, equals('call_abc123'));
+    });
+
+    // -----------------------------------------------------------------------
+    // 5. reset()
     // -----------------------------------------------------------------------
     test('reset() clears conversation history', () async {
       final adapter = MockAdapter();

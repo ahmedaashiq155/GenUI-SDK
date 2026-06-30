@@ -27,9 +27,18 @@ class GenUiTextChunk extends GenUiStreamEvent {
 }
 
 class GenUiToolCallEvent extends GenUiStreamEvent {
-  const GenUiToolCallEvent({required this.name, required this.args});
+  const GenUiToolCallEvent({
+    required this.name,
+    required this.args,
+    this.id,
+  });
   final String name;
   final Map<String, dynamic> args;
+
+  /// Provider-assigned tool-call ID. Required by Anthropic and OpenAI when
+  /// replaying the assistant turn that contained the tool call. Null for
+  /// providers that do not assign IDs (e.g. Gemini).
+  final String? id;
 }
 
 class GenUiStopEvent extends GenUiStreamEvent {
@@ -39,19 +48,58 @@ class GenUiStopEvent extends GenUiStreamEvent {
 
 /// Message in the conversation history.
 class GenUiMessage {
-  const GenUiMessage({required this.role, this.content, this.toolResult});
+  const GenUiMessage({
+    required this.role,
+    this.content,
+    this.toolResult,
+    this.toolCall,
+  });
 
   /// Role: 'user' | 'assistant' | 'tool' | 'system'
   final String role;
   final String? content;
+
+  /// Present on role='tool' messages — the result to feed back to the LLM.
   final GenUiToolResult? toolResult;
+
+  /// Present on role='assistant' messages that triggered a tool call.
+  /// Carried so adapters can reconstruct the provider-specific tool-call block
+  /// (Anthropic tool_use block, OpenAI tool_calls array) on message replay,
+  /// which is required for multi-turn tool use to succeed.
+  final GenUiToolCall? toolCall;
+}
+
+/// Tool-call metadata stored on the assistant turn that triggered the call.
+/// Enables correct replay of the assistant message with the provider's
+/// required tool-call structure (tool_use id for Anthropic, tool_calls id
+/// for OpenAI).
+class GenUiToolCall {
+  const GenUiToolCall({
+    required this.name,
+    required this.args,
+    this.id,
+  });
+  final String name;
+  final Map<String, dynamic> args;
+
+  /// Provider-assigned call ID (null for providers that don't issue IDs).
+  final String? id;
 }
 
 /// Result of a tool invocation to feed back to the LLM.
 class GenUiToolResult {
-  const GenUiToolResult({required this.toolName, required this.result});
+  const GenUiToolResult({
+    required this.toolName,
+    required this.result,
+    this.toolCallId,
+  });
   final String toolName;
   final dynamic result;
+
+  /// The provider-assigned ID of the tool call this result corresponds to.
+  /// Must match [GenUiToolCall.id] on the preceding assistant message for
+  /// Anthropic (tool_result.tool_use_id) and OpenAI (tool message.tool_call_id).
+  final String? toolCallId;
 }
 
 /// Tool definition exposed to the LLM.
