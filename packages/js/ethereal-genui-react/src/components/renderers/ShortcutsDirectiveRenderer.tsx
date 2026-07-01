@@ -16,7 +16,9 @@ export function ShortcutsDirectiveRenderer({ spec, onSend, className, style }: S
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    actions?.setShortcuts?.(items)
+    if (items.length > 0) {
+      actions?.setShortcuts?.(items)
+    }
   }, [])
 
   if (items.length === 0) return null

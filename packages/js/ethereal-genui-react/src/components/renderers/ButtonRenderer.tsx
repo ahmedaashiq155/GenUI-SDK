@@ -82,7 +82,7 @@ export function ButtonRenderer({ spec, onSend, className, style }: ButtonRendere
         }}
       >
         {hasIcon && (
-          <IconRenderer spec={{ type: 'icon', icon: spec.icon }} />
+          <IconRenderer spec={{ type: 'icon', icon: spec.icon, size: 18 }} style={{ color: textColor }} />
         )}
         {String(spec.label ?? '')}
       </button>

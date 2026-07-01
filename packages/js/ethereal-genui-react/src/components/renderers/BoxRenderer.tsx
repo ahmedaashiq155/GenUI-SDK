@@ -58,9 +58,10 @@ export function BoxRenderer({ spec, onSend, className, style }: BoxRendererProps
     case 'stretch': alignItems = 'stretch';  break
   }
 
-  // Children
+  // Children — child and children are mutually exclusive; child takes precedence
   const child = spec.child
-  const childrenArray = Array.isArray(spec.children)
+  const hasSingleChild = child != null && typeof child === 'object' && !Array.isArray(child)
+  const childrenArray = !hasSingleChild && Array.isArray(spec.children)
     ? (spec.children as unknown[]).filter((c): c is Record<string, unknown> => typeof c === 'object' && c !== null && !Array.isArray(c))
     : []
 
@@ -83,7 +84,7 @@ export function BoxRenderer({ spec, onSend, className, style }: BoxRendererProps
           ...style,
         }}
       >
-        {child != null && typeof child === 'object' && !Array.isArray(child) && (
+        {hasSingleChild && (
           <GenUiBlock spec={child as Record<string, unknown>} onSend={onSend ?? (() => {})} />
         )}
         {childrenArray.map((c, i) => (

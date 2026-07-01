@@ -70,6 +70,15 @@ describe('ButtonRenderer', () => {
     expect(btn.style.cursor).toBe('default')
   })
 
+  it('renders leading icon at label-matched size and text color', () => {
+    const { container } = render(
+      <ButtonRenderer spec={{ type: 'button', label: 'Go', send: 'x', icon: 'rocket', style: 'primary' }} onSend={vi.fn()} />
+    )
+    const iconSpan = container.querySelector('span') as HTMLSpanElement
+    expect(iconSpan.style.fontSize).toBe('18px')
+    expect(iconSpan.style.color).toBe('var(--ethereal-on-accent)')
+  })
+
   it('forwards className and style to button', () => {
     const { container } = render(
       <ButtonRenderer

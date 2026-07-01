@@ -61,6 +61,20 @@ describe('ShortcutsDirectiveRenderer', () => {
     expect(setShortcuts).toHaveBeenCalledWith(['Item A', 'Item B'])
   })
 
+  it('does not call setShortcuts when items are empty (avoids wiping stored shortcuts)', () => {
+    const setShortcuts = vi.fn()
+    const actions = { sendMessage: vi.fn(), setShortcuts, enabled: true }
+    render(
+      <GenUiProvider actions={actions}>
+        <ShortcutsDirectiveRenderer
+          spec={{ type: 'shortcuts', items: [] }}
+          onSend={vi.fn()}
+        />
+      </GenUiProvider>
+    )
+    expect(setShortcuts).not.toHaveBeenCalled()
+  })
+
   it('renders header text "Saved to your shortcuts"', () => {
     render(
       <ShortcutsDirectiveRenderer
