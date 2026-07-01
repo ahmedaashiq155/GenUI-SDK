@@ -97,7 +97,7 @@ class _GenUiChatState extends State<GenUiChat> {
                         child: Text(seg.markdown),
                       )
                     else if (seg is UiSegment)
-                      GenUiBlock(raw: seg.json, actions: actions),
+                      GenUiBlock(raw: seg.json, actions: actions, closed: seg.closed),
                 ],
               );
             },

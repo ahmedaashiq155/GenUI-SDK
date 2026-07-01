@@ -1,6 +1,5 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:ethereal_genui_core/ethereal_genui_core.dart';
 
 import 'genui_theme.dart';
 import 'genui_actions.dart';
@@ -20,53 +19,69 @@ Widget buildGenUiSpec(
   return genUiPlaceholder(context, type: type);
 }
 
-/// Calm fallback. With no [type] (still streaming/unparsed) it reads as
-/// "Preparing…"; with a fully-parsed but unsupported [type] it names it, so the
+/// Calm fallback. With no [type] and not [malformed] (still streaming/unparsed)
+/// it reads as "Preparing…"; with [malformed] set (closed fence that still
+/// failed to parse/repair) it reads as "Couldn't render this block", danger-
+/// tinted; with a fully-parsed but unsupported [type] it names it, so the
 /// failure is legible rather than silent.
-Widget genUiPlaceholder(BuildContext context, {String? type}) {
+Widget genUiPlaceholder(BuildContext context, {String? type, bool malformed = false}) {
   final colors = GenUiColors.of(context);
-  final label = (type != null && type.isNotEmpty) ? 'Unsupported block: $type' : 'Preparing…';
+  final label = malformed
+      ? "Couldn't render this block"
+      : (type != null && type.isNotEmpty)
+          ? 'Unsupported block: $type'
+          : 'Preparing…';
+  final iconColor = malformed ? colors.danger : colors.textTertiary;
   return Container(
     margin: const EdgeInsets.symmetric(vertical: GenUiSpace.sm),
     padding: const EdgeInsets.symmetric(horizontal: GenUiSpace.md, vertical: GenUiSpace.sm),
     decoration: ShapeDecoration(
       color: colors.surface.withValues(alpha: 0.5),
-      shape: GenUiShape.shape(GenUiRadii.md, side: BorderSide(color: colors.hairline)),
+      shape: GenUiShape.shape(GenUiRadii.md,
+          side: BorderSide(color: malformed ? colors.danger.withValues(alpha: 0.3) : colors.hairline)),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.widgets_outlined, size: 15, color: colors.textTertiary),
+        Icon(malformed ? Icons.error_outline_rounded : Icons.widgets_outlined,
+            size: 15, color: iconColor),
         const SizedBox(width: GenUiSpace.sm),
-        Flexible(
-          child: Text(label,
-              style: TextStyle(color: colors.textTertiary, fontSize: 13)),
-        ),
+        Flexible(child: Text(label, style: TextStyle(color: iconColor, fontSize: 13))),
       ],
     ),
   );
 }
 
 /// Parses a model-authored `ui` JSON block and renders it. Tolerant of partial
-/// JSON during streaming (shows the placeholder until it parses).
+/// JSON during streaming: [tryParsePartialJson] repairs a still-open fence so
+/// it renders progressively instead of waiting for the closing brace.
 class GenUiBlock extends StatelessWidget {
-  const GenUiBlock({super.key, required this.raw, required this.actions});
+  const GenUiBlock({
+    super.key,
+    required this.raw,
+    required this.actions,
+    this.closed = true,
+  });
 
   final String raw;
   final GenUiActions actions;
+
+  /// Whether the source fence has finished streaming. Defaults to `true` so
+  /// existing call sites that don't know about streaming keep their old
+  /// behaviour (an unparseable block reads as malformed, not "Preparing…").
+  final bool closed;
 
   @override
   Widget build(BuildContext context) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return genUiPlaceholder(context);
-    Map<String, dynamic>? spec;
-    try {
-      final value = jsonDecode(trimmed);
-      if (value is Map<String, dynamic>) spec = value;
-    } catch (_) {
-      spec = null;
+
+    final spec = tryParsePartialJson(trimmed);
+    if (spec == null) {
+      return closed
+          ? genUiPlaceholder(context, malformed: true)
+          : genUiPlaceholder(context);
     }
-    if (spec == null) return genUiPlaceholder(context);
     return buildGenUiSpec(context, spec, actions);
   }
 }

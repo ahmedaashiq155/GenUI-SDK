@@ -131,6 +131,40 @@ void main() {
     expect(find.text('Heads up'), findsOneWidget);
   });
 
+  testWidgets('GenUiBlock renders a still-streaming partial spec progressively',
+      (tester) async {
+    await tester.pumpWidget(_host(GenUiBlock(
+      raw: '{"type":"card","title":"Users"',
+      actions: actions(),
+      closed: false,
+    )));
+    expect(find.text('Users'), findsOneWidget);
+  });
+
+  testWidgets(
+      'GenUiBlock shows the streaming placeholder for unrepairable partial JSON '
+      'while still open', (tester) async {
+    await tester.pumpWidget(_host(GenUiBlock(
+      raw: 'garbage {{{',
+      actions: actions(),
+      closed: false,
+    )));
+    expect(find.text('Preparing…'), findsOneWidget);
+    expect(find.text("Couldn't render this block"), findsNothing);
+  });
+
+  testWidgets(
+      'GenUiBlock shows the malformed placeholder for unrepairable JSON once closed',
+      (tester) async {
+    await tester.pumpWidget(_host(GenUiBlock(
+      raw: 'garbage {{{',
+      actions: actions(),
+      closed: true,
+    )));
+    expect(find.text("Couldn't render this block"), findsOneWidget);
+    expect(find.text('Preparing…'), findsNothing);
+  });
+
   testWidgets('disabled actions do not send', (tester) async {
     String? sent;
     await tester.pumpWidget(_host(Builder(
