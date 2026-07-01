@@ -21,13 +21,19 @@ export function PollRenderer({ spec, onSend, className, style }: PollRendererPro
   )
 
   const [votedIndex, setVotedIndex] = usePersistedState<number>(id, -1)
-  const [votes, setVotes] = useState<number[]>(() =>
-    rawOptions.map(o =>
+  const [votes, setVotes] = useState<number[]>(() => {
+    const seeded = rawOptions.map(o =>
       typeof o === 'object' && o !== null && (o as Record<string, unknown>).votes
         ? Number((o as Record<string, unknown>).votes)
         : 0
     )
-  )
+    // On remount with an already-persisted vote, re-apply the user's own
+    // increment — the vote count itself isn't persisted, only the index.
+    if (votedIndex >= 0 && votedIndex < seeded.length) {
+      seeded[votedIndex] += 1
+    }
+    return seeded
+  })
 
   const handleVote = (i: number) => {
     if (votedIndex >= 0) return

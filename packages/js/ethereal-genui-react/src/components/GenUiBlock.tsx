@@ -70,11 +70,14 @@ export function GenUiBlock({ spec, onSend, className, style }: GenUiBlockProps) 
     case 'quiz':       return <QuizRenderer       spec={spec} onSend={onSend} className={className} style={style} />
     case 'card':       return <CardRenderer       spec={spec} onSend={onSend} className={className} style={style} />
     case 'callout':    return <CalloutRenderer    spec={spec} onSend={onSend} className={className} style={style} />
-    case 'stat':       return <StatRenderer       spec={spec} onSend={onSend} className={className} style={style} />
+    case 'stat':
+    case 'kpi':        return <StatRenderer       spec={spec} onSend={onSend} className={className} style={style} />
     case 'table':      return <TableRenderer      spec={spec} onSend={onSend} className={className} style={style} />
-    case 'timeline':   return <TimelineRenderer   spec={spec} onSend={onSend} className={className} style={style} />
+    case 'timeline':
+    case 'steps':      return <TimelineRenderer   spec={spec} onSend={onSend} className={className} style={style} />
     case 'progress':   return <ProgressRenderer   spec={spec} onSend={onSend} className={className} style={style} />
-    case 'badges':     return <BadgesRenderer     spec={spec} onSend={onSend} className={className} style={style} />
+    case 'badges':
+    case 'chips':      return <BadgesRenderer     spec={spec} onSend={onSend} className={className} style={style} />
     case 'gallery':    return <GalleryRenderer    spec={spec} onSend={onSend} className={className} style={style} />
     case 'divider':    return <DividerRenderer    className={className} style={style} />
     case 'calculator': return <CalculatorRenderer spec={spec} onSend={onSend} className={className} style={style} />
@@ -90,7 +93,8 @@ export function GenUiBlock({ spec, onSend, className, style }: GenUiBlockProps) 
     case 'icon':       return <IconRenderer        spec={spec} onSend={onSend} className={className} style={style} />
     case 'spacer':     return <SpacerRenderer      spec={spec}                 className={className} style={style} />
     case 'button':     return <ButtonRenderer      spec={spec} onSend={onSend} className={className} style={style} />
-    case 'box':        return <BoxRenderer         spec={spec} onSend={onSend} className={className} style={style} />
+    case 'box':
+    case 'container':  return <BoxRenderer         spec={spec} onSend={onSend} className={className} style={style} />
     case 'row':        return <RowRenderer         spec={spec} onSend={onSend} className={className} style={style} />
     case 'column':     return <ColumnRenderer      spec={spec} onSend={onSend} className={className} style={style} />
     case 'stack':      return <StackRenderer       spec={spec} onSend={onSend} className={className} style={style} />

@@ -95,7 +95,7 @@ export function StepperRenderer({ spec, onSend, className, style }: StepperRende
         +
       </button>
       <button
-        onClick={() => onSend(`${label}: ${value}${unit}`.trim())}
+        onClick={() => onSend(label ? `${label}: ${value}${unit}` : `${value}${unit}`)}
         style={{
           background: 'none',
           border: 'none',

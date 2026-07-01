@@ -145,7 +145,10 @@ function PieChart({ data }: { data: DataPoint[] }) {
   let startAngle = 0
   const slices = data.map((d, i) => {
     const angle = (d.value / total) * 360
-    const path  = slicePath(cx, cy, outerR, innerR, startAngle, startAngle + angle)
+    // A sweep of exactly 360deg makes the arc's start/end points coincide,
+    // which SVG treats as a degenerate no-op path (renders nothing).
+    const sweep = Math.min(angle, 359.999)
+    const path  = slicePath(cx, cy, outerR, innerR, startAngle, startAngle + sweep)
     const midAngle = startAngle + angle / 2
     const pct   = (d.value / total) * 100
     const labelPt = polarToCartesian(cx, cy, (outerR + innerR) / 2, midAngle)
@@ -166,7 +169,7 @@ function PieChart({ data }: { data: DataPoint[] }) {
             y={s.labelPt.y}
             textAnchor="middle"
             dominantBaseline="middle"
-            style={{ fontSize: 10, fill: 'var(--ethereal-bg)', fontWeight: 600 }}
+            style={{ fontSize: 10, fill: 'var(--ethereal-on-accent)', fontWeight: 600 }}
           >
             {Math.round(s.pct)}%
           </text>

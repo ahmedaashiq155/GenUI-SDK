@@ -9,11 +9,13 @@ export interface WhenRendererProps {
   style?: React.CSSProperties
 }
 
+const noopSubscribe = () => () => {}
+
 export function WhenRenderer({ spec, onSend, className, style }: WhenRendererProps) {
   const store = useOptionalGenUiStore()
   // Subscribe for reactivity; if no store, always returns undefined
   const value = useSyncExternalStore(
-    store ? store.subscribe : (() => () => {}),
+    store ? store.subscribe : noopSubscribe,
     () => store ? store.getValue(spec.key as string) : undefined,
     () => undefined,
   )

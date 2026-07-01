@@ -18,6 +18,16 @@ describe('applyJsonPatch', () => {
     expect(result.items).toEqual(['X', 'NEW', 'Z'])
     expect(result.items).toHaveLength(3)  // not 4!
   })
+  it('skips replace at an out-of-bounds array index instead of creating holes', () => {
+    const doc = { items: ['X', 'Y', 'Z'] }
+    const result = applyJsonPatch(doc, [{ op: 'replace', path: '/items/5', value: 'NEW' }]) as any
+    expect(result.items).toEqual(['X', 'Y', 'Z'])
+  })
+  it('skips replace at a non-integer array index', () => {
+    const doc = { items: ['X', 'Y', 'Z'] }
+    const result = applyJsonPatch(doc, [{ op: 'replace', path: '/items/foo', value: 'NEW' }]) as any
+    expect(result.items).toEqual(['X', 'Y', 'Z'])
+  })
   it('remove op', () => {
     const result = applyJsonPatch({ a: 1, b: 2 }, [{ op: 'remove', path: '/a' }])
     expect(result).toEqual({ b: 2 })

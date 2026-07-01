@@ -75,7 +75,9 @@ export class AguiEventProcessor {
       case EventType.TEXT_MESSAGE_START:
         this._currentMessageId = (event as any).messageId ?? null
         this._currentMessageBuffer = ''
-        return false
+        this.streamingText = ''
+        this._notify()
+        return true
 
       case EventType.TEXT_MESSAGE_CONTENT:
         this._currentMessageBuffer += (event as any).delta ?? ''
