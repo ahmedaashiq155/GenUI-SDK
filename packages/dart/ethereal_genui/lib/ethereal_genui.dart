@@ -39,3 +39,4 @@ export 'src/renderers/tool_call.dart' show ToolCallRenderer;
 export 'src/renderers/directives.dart' show parseHexColor;
 export 'src/renderers/display.dart' show TableRenderer;
 export 'src/renderers/primitives.dart' show iconByName;
+export 'src/renderers/charts.dart' show chartSemanticLabel;

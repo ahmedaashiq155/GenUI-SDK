@@ -352,4 +352,135 @@ void main() {
       expect(sent, isNull); // no chat turn sent
     });
   });
+
+  group('accessibility (Semantics)', () {
+    testWidgets('GenUiPressable with semanticLabel exposes label and button flag',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(GenUiPressable(
+        onTap: () {},
+        semanticLabel: 'Send',
+        child: const Icon(Icons.send_rounded),
+      )));
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Send')),
+        matchesSemantics(label: 'Send', isButton: true, hasEnabledState: true, isEnabled: true),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('a disabled GenUiPressable still announces as a button',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(const GenUiPressable(
+        onTap: null,
+        semanticLabel: 'Send',
+        child: Icon(Icons.send_rounded),
+      )));
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Send')),
+        matchesSemantics(label: 'Send', isButton: true, hasEnabledState: true),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('RatingRenderer stars expose spoken labels', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(Builder(
+        builder: (c) => buildGenUiSpec(
+          c,
+          {'type': 'rating', 'max': 5},
+          actions(),
+        ),
+      )));
+
+      expect(find.bySemanticsLabel('1 of 5 stars'), findsOneWidget);
+      expect(find.bySemanticsLabel('5 of 5 stars'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('ProgressRenderer exposes a value matching the percent',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(Builder(
+        builder: (c) => buildGenUiSpec(
+          c,
+          {'type': 'progress', 'label': 'Uploading', 'percent': 42},
+          actions(),
+        ),
+      )));
+
+      final node = tester.getSemantics(
+          find.ancestor(of: find.byType(LinearProgressIndicator), matching: find.byType(Semantics)).first);
+      expect(node.label, 'Uploading');
+      expect(node.value, '42%');
+      handle.dispose();
+    });
+
+    testWidgets('StepperRenderer increase/decrease/send buttons expose labels',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(Builder(
+        builder: (c) => buildGenUiSpec(
+          c,
+          {'type': 'stepper', 'label': 'Guests', 'min': 1, 'max': 9, 'value': 2},
+          actions(),
+        ),
+      )));
+
+      expect(find.bySemanticsLabel('Decrease'), findsOneWidget);
+      expect(find.bySemanticsLabel('Increase'), findsOneWidget);
+      expect(find.bySemanticsLabel('Send'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('CalculatorRenderer operator keys expose spoken-word labels',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(Builder(
+        builder: (c) => buildGenUiSpec(c, {'type': 'calculator'}, actions()),
+      )));
+
+      expect(find.bySemanticsLabel('multiply'), findsOneWidget);
+      expect(find.bySemanticsLabel('divide'), findsOneWidget);
+      expect(find.bySemanticsLabel('clear'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets(
+        "TimerRenderer's live region does not change its label on every "
+        'per-second tick (only on phase transitions)', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(Builder(
+        builder: (c) => buildGenUiSpec(c, {'type': 'timer', 'seconds': 5}, actions()),
+      )));
+
+      Finder liveRegion() => find.byWidgetPredicate(
+          (w) => w is Semantics && (w.properties.label ?? '').startsWith('Timer'));
+
+      expect(tester.getSemantics(liveRegion()).label, 'Timer ready, 00:05');
+
+      // Start the timer -> phase transition, label should update once.
+      expect(find.bySemanticsLabel('Start timer'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Start timer'));
+      await tester.pump();
+      expect(tester.getSemantics(liveRegion()).label, 'Timer started');
+
+      // Per-second ticks must NOT change the live-region label.
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.getSemantics(liveRegion()).label, 'Timer started');
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.getSemantics(liveRegion()).label, 'Timer started');
+
+      // Pausing is a phase transition and should update the label.
+      expect(find.bySemanticsLabel('Pause timer'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Pause timer'));
+      await tester.pump();
+      expect(tester.getSemantics(liveRegion()).label, startsWith('Timer paused at'));
+
+      handle.dispose();
+    });
+  });
 }

@@ -302,13 +302,17 @@ class ProgressRenderer extends StatelessWidget {
             ],
           ),
           const SizedBox(height: GenUiSpace.sm),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: value,
-              minHeight: 8,
-              backgroundColor: colors.accent.withValues(alpha: 0.14),
-              valueColor: AlwaysStoppedAnimation(colors.accent),
+          Semantics(
+            label: '${spec['label'] ?? ''}',
+            value: '${(value * 100).round()}%',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: value,
+                minHeight: 8,
+                backgroundColor: colors.accent.withValues(alpha: 0.14),
+                valueColor: AlwaysStoppedAnimation(colors.accent),
+              ),
             ),
           ),
         ],

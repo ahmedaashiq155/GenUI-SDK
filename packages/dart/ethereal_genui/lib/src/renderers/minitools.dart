@@ -5,6 +5,11 @@ import 'package:flutter/material.dart';
 import '../genui_theme.dart';
 import '../genui_common.dart';
 
+const _keyLabels = {
+  '×': 'multiply', '÷': 'divide', '−': 'minus', '+': 'plus',
+  '=': 'equals', 'C': 'clear', '.': 'point',
+};
+
 /// {"type":"calculator"} — a fully local calculator (no model round-trip).
 class CalculatorRenderer extends StatefulWidget {
   const CalculatorRenderer({super.key});
@@ -123,6 +128,7 @@ class _CalculatorRendererState extends State<CalculatorRenderer> {
             : colors.textPrimary;
     return GenUiPressable(
       haptic: false,
+      semanticLabel: _keyLabels[key] ?? key,
       onTap: () {
         if (key == 'C') {
           _clear();
@@ -268,10 +274,13 @@ class TimerRenderer extends StatefulWidget {
   State<TimerRenderer> createState() => _TimerRendererState();
 }
 
+enum _TimerPhase { idle, running, paused, done }
+
 class _TimerRendererState extends State<TimerRenderer> {
   late int _total;
   late int _remaining;
   Timer? _timer;
+  _TimerPhase _phase = _TimerPhase.idle;
 
   @override
   void initState() {
@@ -291,19 +300,26 @@ class _TimerRendererState extends State<TimerRenderer> {
   void _toggle() {
     if (_timer != null) {
       _timer!.cancel();
-      setState(() => _timer = null);
+      setState(() {
+        _timer = null;
+        _phase = _TimerPhase.paused;
+      });
       return;
     }
     setState(() {
       if (_remaining == 0) _remaining = _total;
+      _phase = _TimerPhase.running;
       _timer = Timer.periodic(const Duration(seconds: 1), (t) {
         if (_remaining <= 1) {
           t.cancel();
           setState(() {
             _remaining = 0;
             _timer = null;
+            _phase = _TimerPhase.done;
           });
         } else {
+          // Only _remaining changes on a tick — _phase must stay untouched so
+          // the live region doesn't re-announce every second.
           setState(() => _remaining -= 1);
         }
       });
@@ -315,6 +331,19 @@ class _TimerRendererState extends State<TimerRenderer> {
     final s = (_remaining % 60).toString().padLeft(2, '0');
     return '$m:$s';
   }
+
+  // Note: only the idle/paused cases interpolate `_formatted` — those phases
+  // don't tick. `running`'s label is intentionally static (no countdown
+  // baked in): `_formatted` changes every second, and if it were embedded
+  // here the liveRegion label would change every tick and re-announce every
+  // second (the exact spam this design avoids). The ticking countdown is
+  // already excluded from semantics via ExcludeSemantics below.
+  String get _phaseAnnouncement => switch (_phase) {
+        _TimerPhase.idle => 'Timer ready, $_formatted',
+        _TimerPhase.running => 'Timer started',
+        _TimerPhase.paused => 'Timer paused at $_formatted',
+        _TimerPhase.done => 'Timer complete',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -331,10 +360,16 @@ class _TimerRendererState extends State<TimerRenderer> {
                   Text('${widget.spec['label']}',
                       style: Theme.of(context).textTheme.bodyMedium
                           ?.copyWith(color: colors.textTertiary)),
-                Text(_formatted,
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        color: _remaining == 0 ? colors.celadon : colors.textPrimary,
-                        fontFeatures: const [FontFeature.tabularFigures()])),
+                Semantics(
+                  liveRegion: true,
+                  label: _phaseAnnouncement,
+                  child: ExcludeSemantics(
+                    child: Text(_formatted,
+                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                            color: _remaining == 0 ? colors.celadon : colors.textPrimary,
+                            fontFeatures: const [FontFeature.tabularFigures()])),
+                  ),
+                ),
               ],
             ),
           ),
@@ -344,6 +379,7 @@ class _TimerRendererState extends State<TimerRenderer> {
             _toggle,
             filled: true,
             icon: _timer != null ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            semanticLabel: _timer != null ? 'Pause timer' : 'Start timer',
           ),
         ],
       ),

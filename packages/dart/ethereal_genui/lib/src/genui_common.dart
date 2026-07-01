@@ -58,11 +58,13 @@ abstract final class GenUi {
     bool filled = false,
     IconData? icon,
     bool selected = false,
+    String? semanticLabel,
   }) {
     final colors = GenUiColors.of(context);
     final isFilled = filled || selected;
     return GenUiPressable(
       onTap: onTap,
+      semanticLabel: semanticLabel,
       child: AnimatedContainer(
         duration: GenUiMotion.quick,
         padding: const EdgeInsets.symmetric(
@@ -100,8 +102,9 @@ abstract final class GenUi {
   static Widget submitButton(
     BuildContext context,
     String label,
-    VoidCallback? onTap,
-  ) {
+    VoidCallback? onTap, {
+    String? semanticLabel,
+  }) {
     final colors = GenUiColors.of(context);
     final enabled = onTap != null;
     return SizedBox(
@@ -109,6 +112,7 @@ abstract final class GenUi {
       child: GenUiPressable(
         onTap: onTap,
         haptic: false,
+        semanticLabel: semanticLabel,
         child: AnimatedContainer(
           duration: GenUiMotion.quick,
           alignment: Alignment.center,

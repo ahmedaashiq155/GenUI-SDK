@@ -149,6 +149,7 @@ class GenUiPressable extends StatefulWidget {
     this.scale = 0.97,
     this.haptic = true,
     this.behavior = HitTestBehavior.opaque,
+    this.semanticLabel,
   });
 
   final Widget child;
@@ -157,6 +158,11 @@ class GenUiPressable extends StatefulWidget {
   final double scale;
   final bool haptic;
   final HitTestBehavior behavior;
+
+  /// Overrides the spoken accessibility label for this pressable. Use when
+  /// [child] is icon-only, or when its text is an unsuitable spoken label
+  /// (e.g. a glyph like `×`).
+  final String? semanticLabel;
 
   @override
   State<GenUiPressable> createState() => _GenUiPressableState();
@@ -183,7 +189,7 @@ class _GenUiPressableState extends State<GenUiPressable>
   @override
   Widget build(BuildContext context) {
     final enabled = widget.onTap != null || widget.onLongPress != null;
-    return GestureDetector(
+    final gesture = GestureDetector(
       behavior: widget.behavior,
       onTapDown: enabled ? (_) => _setPressed(true) : null,
       onTapUp: enabled ? (_) => _setPressed(false) : null,
@@ -207,6 +213,23 @@ class _GenUiPressableState extends State<GenUiPressable>
           child: child,
         ),
         child: widget.child,
+      ),
+    );
+
+    if (widget.semanticLabel != null) {
+      return Semantics(
+        button: true,
+        enabled: enabled,
+        label: widget.semanticLabel,
+        excludeSemantics: true,
+        child: gesture,
+      );
+    }
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        child: gesture,
       ),
     );
   }

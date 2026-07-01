@@ -4,6 +4,25 @@ import 'package:flutter/material.dart';
 import '../genui_theme.dart';
 import '../genui_common.dart';
 
+/// Builds a spoken-word summary of chart data for accessibility, since
+/// fl_chart emits no native semantics. Pure function.
+String chartSemanticLabel({
+  required String variant,
+  String? title,
+  required List<({String label, double value})> data,
+}) {
+  final kind = switch (variant) {
+    'pie' => 'Pie chart',
+    'line' => 'Line chart',
+    _ => 'Bar chart',
+  };
+  String fmt(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+  final points = data.map((d) => '${d.label} ${fmt(d.value)}').join(', ');
+  final titlePart = (title != null && title.isNotEmpty) ? '$title. ' : '';
+  return '$titlePart$kind: $points';
+}
+
 /// {"type":"chart","chart":"bar|line|pie","title":"…","data":[{"label":"Mon","value":3}]}
 class ChartRenderer extends StatelessWidget {
   const ChartRenderer({super.key, required this.spec});
@@ -27,13 +46,19 @@ class ChartRenderer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GenUi.title(context, spec['title'] as String?),
-          SizedBox(
-            height: 200,
-            child: switch (variant) {
-              'pie' => _pie(context, data),
-              'line' => _line(context, data),
-              _ => _bar(context, data),
-            },
+          Semantics(
+            label: chartSemanticLabel(
+                variant: variant, title: spec['title'] as String?, data: data),
+            child: SizedBox(
+              height: 200,
+              child: ExcludeSemantics(
+                child: switch (variant) {
+                  'pie' => _pie(context, data),
+                  'line' => _line(context, data),
+                  _ => _bar(context, data),
+                },
+              ),
+            ),
           ),
         ],
       ),

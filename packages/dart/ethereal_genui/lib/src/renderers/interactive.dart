@@ -49,6 +49,7 @@ class _RatingRendererState extends State<RatingRenderer>
               for (var i = 1; i <= max; i++)
                 GenUiPressable(
                   haptic: false,
+                  semanticLabel: '$i of $max stars',
                   onTap: widget.actions.enabled
                       ? () {
                           setState(() => _value = i);
@@ -186,8 +187,9 @@ class _StepperRendererState extends State<StepperRenderer>
     final unit = (widget.spec['unit'] ?? '').toString();
     final label = (widget.spec['label'] ?? widget.spec['title'] ?? '').toString();
 
-    Widget btn(IconData icon, VoidCallback? onTap) => GenUiPressable(
+    Widget btn(IconData icon, VoidCallback? onTap, String label) => GenUiPressable(
           onTap: onTap,
+          semanticLabel: label,
           child: Container(
             width: 38,
             height: 38,
@@ -211,7 +213,8 @@ class _StepperRendererState extends State<StepperRenderer>
                       setState(() => _value -= step);
                       persist(_value);
                     }
-                  : null),
+                  : null,
+              'Decrease'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: GenUiSpace.md),
             child: Text('$_value$unit',
@@ -224,12 +227,14 @@ class _StepperRendererState extends State<StepperRenderer>
                       setState(() => _value += step);
                       persist(_value);
                     }
-                  : null),
+                  : null,
+              'Increase'),
           const SizedBox(width: GenUiSpace.md),
-          GestureDetector(
+          GenUiPressable(
             onTap: widget.actions.enabled
                 ? () => widget.actions.sendMessage('$label: $_value$unit'.trim())
                 : null,
+            semanticLabel: 'Send',
             child: Icon(Icons.send_rounded, color: colors.accent, size: 22),
           ),
         ],
