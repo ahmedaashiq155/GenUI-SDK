@@ -8,9 +8,9 @@ describe('GenUiBlock', () => {
     expect(document.querySelector('hr, div')).not.toBeNull()
   })
 
-  it('returns null for an unknown type', () => {
-    const { container } = render(<GenUiBlock spec={{ type: 'nonexistent' }} onSend={vi.fn()} />)
-    expect(container.firstChild).toBeNull()
+  it('renders an "Unsupported block" placeholder for an unknown type', () => {
+    render(<GenUiBlock spec={{ type: 'nonexistent' }} onSend={vi.fn()} />)
+    expect(screen.getByText('Unsupported block: nonexistent')).toBeDefined()
   })
 
   // Schema-sanctioned aliases (@ethereal/genui-core genui_schema.ts) must route

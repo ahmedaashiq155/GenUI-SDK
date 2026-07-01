@@ -1,4 +1,5 @@
 import React from 'react'
+import { GenUiPlaceholder } from './GenUiPlaceholder.js'
 import { TextRenderer } from './renderers/TextRenderer.js'
 import { IconRenderer } from './renderers/IconRenderer.js'
 import { SpacerRenderer } from './renderers/SpacerRenderer.js'
@@ -102,6 +103,6 @@ export function GenUiBlock({ spec, onSend, className, style }: GenUiBlockProps) 
     case 'artifact':   return <ArtifactRenderer    spec={spec} onSend={onSend} className={className} style={style} />
     case 'theme':      return <ThemeDirectiveRenderer spec={spec} onSend={onSend} className={className} style={style} />
     case 'shortcuts':  return <ShortcutsDirectiveRenderer spec={spec} onSend={onSend} className={className} style={style} />
-    default:           return null
+    default:           return <GenUiPlaceholder type={type} className={className} style={style} />
   }
 }
