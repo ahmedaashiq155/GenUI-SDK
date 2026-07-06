@@ -47,7 +47,7 @@ describe('ShortcutsDirectiveRenderer', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('calls setShortcuts on mount with filtered items', () => {
+  it('does NOT call setShortcuts on mount — waits for a user tap (consent gate)', () => {
     const setShortcuts = vi.fn()
     const actions = { sendMessage: vi.fn(), setShortcuts, enabled: true }
     render(
@@ -58,31 +58,33 @@ describe('ShortcutsDirectiveRenderer', () => {
         />
       </GenUiProvider>
     )
-    expect(setShortcuts).toHaveBeenCalledWith(['Item A', 'Item B'])
+    expect(setShortcuts).not.toHaveBeenCalled()
   })
 
-  it('does not call setShortcuts when items are empty (avoids wiping stored shortcuts)', () => {
+  it('saves shortcuts only after the user taps Save', () => {
     const setShortcuts = vi.fn()
     const actions = { sendMessage: vi.fn(), setShortcuts, enabled: true }
     render(
       <GenUiProvider actions={actions}>
         <ShortcutsDirectiveRenderer
-          spec={{ type: 'shortcuts', items: [] }}
+          spec={{ type: 'shortcuts', items: ['Item A', 'Item B'] }}
           onSend={vi.fn()}
         />
       </GenUiProvider>
     )
-    expect(setShortcuts).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(setShortcuts).toHaveBeenCalledWith(['Item A', 'Item B'])
+    expect(screen.getByText('Saved to your shortcuts')).toBeDefined()
   })
 
-  it('renders header text "Saved to your shortcuts"', () => {
+  it('renders the "Suggested shortcuts" prompt before saving', () => {
     render(
       <ShortcutsDirectiveRenderer
         spec={{ type: 'shortcuts', items: ['x'] }}
         onSend={vi.fn()}
       />
     )
-    expect(screen.getByText('Saved to your shortcuts')).toBeDefined()
+    expect(screen.getByText('Suggested shortcuts')).toBeDefined()
   })
 
   it('forwards className and style to root element', () => {

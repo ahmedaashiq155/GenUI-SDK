@@ -213,7 +213,13 @@ export function ChartRenderer({ spec, className, style }: ChartRendererProps) {
   const rawData = Array.isArray(spec.data) ? spec.data as unknown[] : []
   const data: DataPoint[] = rawData
     .filter((d): d is Record<string, unknown> => typeof d === 'object' && d !== null)
-    .map(d => ({ label: String(d.label ?? ''), value: Number(d.value ?? 0) }))
+    .map(d => {
+      // A non-finite or negative value (NaN, Infinity, "-3") would poison the
+      // SVG path math (a single NaN makes Math.max return NaN, blanking every
+      // bar). Coerce to a safe non-negative finite number.
+      const n = Number(d.value ?? 0)
+      return { label: String(d.label ?? ''), value: Number.isFinite(n) && n > 0 ? n : 0 }
+    })
 
   if (data.length === 0) return null
 

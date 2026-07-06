@@ -8,9 +8,12 @@ export interface GalleryRendererProps {
 }
 
 export function GalleryRenderer({ spec, className, style }: GalleryRendererProps) {
-  const urls = (spec.images as unknown[] | undefined ?? [])
+  // Require https:// — plaintext http is a downgrade/MITM vector and, like
+  // any spec-supplied URL, an auto-loaded remote image doubles as a tracking
+  // pixel. `spec.images` may not be an array on hostile input.
+  const urls = (Array.isArray(spec.images) ? spec.images : [])
     .map(String)
-    .filter((u) => u.startsWith('http'))
+    .filter((u) => u.startsWith('https://'))
 
   if (urls.length === 0) return null
 
@@ -61,6 +64,8 @@ function GalleryImage({ url }: { url: string }) {
     <img
       src={url}
       alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
       onError={() => setErrored(true)}
       style={{
         width: 200,

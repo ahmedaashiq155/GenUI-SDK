@@ -1,6 +1,7 @@
 import React from 'react'
 import { GenUiBlock } from '../GenUiBlock.js'
 import { useOptionalGenUiStore } from '../../provider.js'
+import { safeColor } from './cssSafe.js'
 
 export interface BoxRendererProps {
   spec: Record<string, unknown>
@@ -31,12 +32,15 @@ export function BoxRenderer({ spec, onSend, className, style }: BoxRendererProps
   }
 
   // Background
-  const gradient = Array.isArray(spec.gradient) ? (spec.gradient as unknown[]).filter((c): c is string => typeof c === 'string') : []
+  const gradient = Array.isArray(spec.gradient)
+    ? (spec.gradient as unknown[]).map(safeColor).filter((c): c is string => c !== undefined)
+    : []
+  const bg = safeColor(spec.bg)
   let background: string
   if (gradient.length >= 2) {
     background = `linear-gradient(135deg, ${gradient.join(', ')})`
-  } else if (typeof spec.bg === 'string' && spec.bg) {
-    background = spec.bg
+  } else if (bg) {
+    background = bg
   } else {
     background = 'var(--ethereal-surface)'
   }
@@ -44,8 +48,9 @@ export function BoxRenderer({ spec, onSend, className, style }: BoxRendererProps
   // Dimensions
   const padding  = typeof spec.padding === 'number' ? spec.padding : 'var(--ethereal-space-md)'
   const radius   = typeof spec.radius  === 'number' ? spec.radius  : 'var(--ethereal-radius-md)'
-  const border   = typeof spec.border  === 'string' && spec.border
-    ? `1px solid ${spec.border}`
+  const borderColor = safeColor(spec.border)
+  const border   = borderColor
+    ? `1px solid ${borderColor}`
     : '1px solid var(--ethereal-hairline)'
   const width  = typeof spec.width  === 'number' ? spec.width  : undefined
   const height = typeof spec.height === 'number' ? spec.height : undefined

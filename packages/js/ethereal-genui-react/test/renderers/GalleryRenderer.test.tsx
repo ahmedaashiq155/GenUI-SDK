@@ -8,21 +8,23 @@ describe('GalleryRenderer', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('filters non-http URLs', () => {
+  it('filters non-http(s) URLs', () => {
     const { container } = render(
       <GalleryRenderer spec={{ type: 'gallery', images: ['ftp://bad.com/img.jpg', 'data:image/png;base64,...'] }} />
     )
-    // both URLs fail the http filter so returns null
+    // none are https so returns null
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders images when valid http URLs present', () => {
+  it('renders only https URLs, dropping plaintext http', () => {
     const { container } = render(
       <GalleryRenderer spec={{ type: 'gallery', images: ['https://example.com/a.jpg', 'http://example.com/b.jpg'] }} />
     )
     expect(container.firstChild).toBeDefined()
     const imgs = container.querySelectorAll('img')
-    expect(imgs.length).toBe(2)
+    // http:// is rejected as a downgrade/exfil vector; only the https image renders.
+    expect(imgs.length).toBe(1)
+    expect(imgs[0].getAttribute('src')).toBe('https://example.com/a.jpg')
   })
 
   it('returns null when images key is absent', () => {

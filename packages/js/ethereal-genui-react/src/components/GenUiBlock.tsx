@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { createContext, useContext } from 'react'
 import { GenUiPlaceholder } from './GenUiPlaceholder.js'
+import { GenUiErrorBoundary } from './GenUiErrorBoundary.js'
 import { TextRenderer } from './renderers/TextRenderer.js'
 import { IconRenderer } from './renderers/IconRenderer.js'
 import { SpacerRenderer } from './renderers/SpacerRenderer.js'
@@ -52,7 +53,30 @@ export interface GenUiBlockProps {
   style?: React.CSSProperties
 }
 
+/**
+ * Maximum nesting depth for one spec tree. A hostile/buggy model can nest a
+ * spec thousands deep; without a cap that blows the render stack (RangeError)
+ * and, absent a boundary, unmounts the host app. 24 is far deeper than any
+ * real layout. Mirrors Dart's kGenUiMaxDepth.
+ */
+const MAX_DEPTH = 24
+const DepthContext = createContext(0)
+
 export function GenUiBlock({ spec, onSend, className, style }: GenUiBlockProps) {
+  const depth = useContext(DepthContext)
+  if (depth >= MAX_DEPTH) {
+    return <GenUiPlaceholder type="too-deep" className={className} style={style} />
+  }
+  return (
+    <GenUiErrorBoundary resetKey={spec} className={className} style={style}>
+      <DepthContext.Provider value={depth + 1}>
+        <GenUiBlockInner spec={spec} onSend={onSend} className={className} style={style} />
+      </DepthContext.Provider>
+    </GenUiErrorBoundary>
+  )
+}
+
+function GenUiBlockInner({ spec, onSend, className, style }: GenUiBlockProps) {
   const type = spec.type as string
   switch (type) {
     case 'choices':    return <ChoicesRenderer    spec={spec} onSend={onSend} className={className} style={style} />
