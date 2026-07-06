@@ -6,9 +6,9 @@ import '../genui_common.dart';
 import '../genui_state.dart';
 
 List<String> _strings(dynamic v) =>
-    (v as List<dynamic>? ?? const []).map((e) => e.toString()).toList();
+    (v is List ? v : const <dynamic>[]).map((e) => e.toString()).toList();
 List<Map<String, dynamic>> _maps(dynamic v) =>
-    (v as List<dynamic>? ?? const []).whereType<Map<String, dynamic>>().toList();
+    (v is List ? v : const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
 int _int(dynamic v, int fallback) =>
     v is num ? v.toInt() : int.tryParse('$v') ?? fallback;
 
@@ -37,13 +37,15 @@ class _RatingRendererState extends State<RatingRenderer>
   @override
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
-    final max = _int(widget.spec['max'], 5);
+    // Clamp: {"max": 100000000} would synchronously build 100M Icon widgets
+    // and hang/OOM the UI thread from a single message.
+    final max = _int(widget.spec['max'], 5).clamp(1, 20);
     return GenUi.frame(
       context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, (widget.spec['label'] ?? widget.spec['title']) as String?),
+          GenUi.title(context, (widget.spec['label'] ?? widget.spec['title'])?.toString()),
           Row(
             children: [
               for (var i = 1; i <= max; i++)
@@ -105,7 +107,7 @@ class _SegmentedRendererState extends State<SegmentedRenderer>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, widget.spec['title'] as String?),
+          GenUi.title(context, widget.spec['title']?.toString()),
           Container(
             decoration: ShapeDecoration(
               color: colors.surface.withValues(alpha: 0.6),
@@ -208,9 +210,11 @@ class _StepperRendererState extends State<StepperRenderer>
           Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyLarge)),
           btn(
               Icons.remove_rounded,
-              widget.actions.enabled && _value > min
+              // Guard on the post-step value, not just `> min`, so a step > 1
+              // can't overshoot below min (and strand the control disabled).
+              widget.actions.enabled && _value - step >= min
                   ? () {
-                      setState(() => _value -= step);
+                      setState(() => _value = (_value - step).clamp(min, max));
                       persist(_value);
                     }
                   : null,
@@ -222,9 +226,9 @@ class _StepperRendererState extends State<StepperRenderer>
           ),
           btn(
               Icons.add_rounded,
-              widget.actions.enabled && _value < max
+              widget.actions.enabled && _value + step <= max
                   ? () {
-                      setState(() => _value += step);
+                      setState(() => _value = (_value + step).clamp(min, max));
                       persist(_value);
                     }
                   : null,
@@ -295,7 +299,7 @@ class _ChecklistRendererState extends State<ChecklistRenderer>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, widget.spec['title'] as String?),
+          GenUi.title(context, widget.spec['title']?.toString()),
           for (var i = 0; i < items.length; i++)
             GenUiPressable(
               haptic: false,
@@ -395,7 +399,7 @@ class _PollRendererState extends State<PollRenderer>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, widget.spec['title'] as String?),
+          GenUi.title(context, widget.spec['title']?.toString()),
           for (var i = 0; i < _labels.length; i++)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),

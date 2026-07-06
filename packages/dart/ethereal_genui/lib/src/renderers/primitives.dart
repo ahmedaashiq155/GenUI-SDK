@@ -13,9 +13,17 @@ import 'directives.dart' show parseHexColor;
 /// accent) so model-built UI stays on-brand.
 
 List<Map<String, dynamic>> _kids(dynamic v) =>
-    (v as List<dynamic>? ?? const []).whereType<Map<String, dynamic>>().toList();
+    (v is List ? v : const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
 
 double? _num(dynamic v) => v is num ? v.toDouble() : null;
+
+/// A non-negative dimension, or null. A negative size/gap/padding trips
+/// Flutter's BoxConstraints assertions (debug) or corrupts layout (release),
+/// so a hostile or typo'd negative value is dropped to the default.
+double? _dim(dynamic v) {
+  final n = _num(v);
+  return (n != null && n >= 0) ? n : null;
+}
 
 FontWeight _weight(dynamic v) => switch ('$v') {
       'bold' || 'w700' => FontWeight.w700,
@@ -125,7 +133,7 @@ class TextRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
-    final size = _num(spec['size']) ?? 15;
+    final size = _dim(spec['size']) ?? 15;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Text(
@@ -152,7 +160,7 @@ class IconRenderer extends StatelessWidget {
     final colors = GenUiColors.of(context);
     return Icon(
       iconByName(spec['icon']),
-      size: _num(spec['size']) ?? 22,
+      size: _dim(spec['size']) ?? 22,
       color: parseHexColor(spec['color']?.toString()) ?? colors.accent,
     );
   }
@@ -165,7 +173,7 @@ class SpacerRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = _num(spec['size']) ?? GenUiSpace.md;
+    final s = _dim(spec['size']) ?? GenUiSpace.md;
     return SizedBox(width: s, height: s);
   }
 }
@@ -254,7 +262,7 @@ class BoxRenderer extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
     final children = _resolveChildren(context);
-    final padding = _num(spec['padding']) ?? GenUiSpace.md;
+    final padding = _dim(spec['padding']) ?? GenUiSpace.md;
     final radius = _num(spec['radius']) ?? GenUiRadii.md;
     final border = parseHexColor(spec['border']?.toString());
     final bg = parseHexColor(spec['bg']?.toString());
@@ -276,8 +284,8 @@ class BoxRenderer extends StatelessWidget {
     if (align == 'center') content = Center(child: content);
 
     final box = Container(
-      width: _num(spec['width']),
-      height: _num(spec['height']),
+      width: _dim(spec['width']),
+      height: _dim(spec['height']),
       padding: EdgeInsets.all(padding),
       decoration: ShapeDecoration(
         color: gradient.isEmpty ? (bg ?? colors.surface.withValues(alpha: 0.5)) : null,
@@ -336,7 +344,7 @@ class RowRenderer extends StatelessWidget {
   Widget build(BuildContext context) {
     final kids = _kids(spec['children']);
     final align = _mainAlign(spec['align']);
-    final gap = _num(spec['gap']) ?? GenUiSpace.sm;
+    final gap = _dim(spec['gap']) ?? GenUiSpace.sm;
     final spaced = align == MainAxisAlignment.spaceBetween ||
         align == MainAxisAlignment.spaceAround;
     final expand = spec['expand'] == true;
@@ -365,7 +373,7 @@ class ColumnRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kids = _kids(spec['children']);
-    final gap = _num(spec['gap']) ?? GenUiSpace.xs;
+    final gap = _dim(spec['gap']) ?? GenUiSpace.xs;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: _crossAlign(spec['cross'] ?? spec['align'] ?? 'start'),

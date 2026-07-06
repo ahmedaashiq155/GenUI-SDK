@@ -18,7 +18,7 @@ class ChoicesRenderer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, spec['title'] as String?),
+          GenUi.title(context, spec['title']?.toString()),
           Wrap(
             spacing: GenUiSpace.sm,
             runSpacing: GenUiSpace.sm,
@@ -42,7 +42,7 @@ class ActionsRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = (spec['actions'] as List<dynamic>? ?? const [])
+    final items = (spec['actions'] is List ? spec['actions'] as List<dynamic> : const [])
         .whereType<Map<String, dynamic>>()
         .toList();
     return GenUi.frame(
@@ -50,7 +50,7 @@ class ActionsRenderer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, spec['title'] as String?),
+          GenUi.title(context, spec['title']?.toString()),
           Wrap(
             spacing: GenUiSpace.sm,
             runSpacing: GenUiSpace.sm,

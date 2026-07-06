@@ -6,7 +6,7 @@ import '../genui_block.dart';
 import '../genui_state.dart';
 
 List<Map<String, dynamic>> _children(dynamic v) =>
-    (v as List<dynamic>? ?? const []).whereType<Map<String, dynamic>>().toList();
+    (v is List ? v : const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
 
 /// {"type":"when","key":"view","equals":"new","child":{…}} — renders its child
 /// only when the scoped state[key] matches `equals` (or is truthy when `equals`
@@ -70,17 +70,22 @@ class GridRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final children = _children(spec['children']);
-    final cols = (spec['columns'] is num) ? (spec['columns'] as num).toInt() : 2;
+    // Clamp to a sane range: a non-positive column count divides by zero /
+    // goes negative, and an absurdly large one makes gap*(cols-1) exceed the
+    // available width — both yield a negative SizedBox width (layout assert).
+    final cols = ((spec['columns'] is num) ? (spec['columns'] as num).toInt() : 2)
+        .clamp(1, 12);
     return LayoutBuilder(
       builder: (context, constraints) {
         const gap = GenUiSpace.sm;
-        final width = (constraints.maxWidth - gap * (cols - 1)) / cols;
+        final rawWidth = (constraints.maxWidth - gap * (cols - 1)) / cols;
+        final width = (rawWidth.isFinite && rawWidth > 0) ? rawWidth : null;
         return Wrap(
           spacing: gap,
           runSpacing: gap,
           children: [
             for (final c in children)
-              SizedBox(width: width.isFinite ? width : null, child: buildGenUiSpec(context, c, actions)),
+              SizedBox(width: width, child: buildGenUiSpec(context, c, actions)),
           ],
         );
       },

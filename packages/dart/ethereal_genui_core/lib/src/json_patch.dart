@@ -25,7 +25,12 @@ Object? applyJsonPatch(Object? doc, List<dynamic> ops) {
 
 Object? _applyOne(Object? doc, Map op) {
   final type = (op['op'] ?? '').toString();
-  final path = (op['path'] ?? '').toString();
+  // A MISSING path must not be conflated with the RFC-6901 whole-document
+  // pointer '' — a truncated/malformed op like {"op":"replace","value":…}
+  // would otherwise silently replace (or, for remove, null out) the entire
+  // document. Throwing here routes the op through the tolerant skip path.
+  if (!op.containsKey('path')) throw const FormatException('op missing path');
+  final path = op['path'].toString();
   switch (type) {
     case 'add':
       return _add(doc, _tokens(path), op['value']);
@@ -34,12 +39,14 @@ Object? _applyOne(Object? doc, Map op) {
     case 'remove':
       return _remove(doc, _tokens(path));
     case 'move':
-      final from = _tokens((op['from'] ?? '').toString());
+      if (!op.containsKey('from')) throw const FormatException('op missing from');
+      final from = _tokens(op['from'].toString());
       final value = _get(doc, from);
       final removed = _remove(doc, from);
       return _add(removed, _tokens(path), _clone(value));
     case 'copy':
-      final from = _tokens((op['from'] ?? '').toString());
+      if (!op.containsKey('from')) throw const FormatException('op missing from');
+      final from = _tokens(op['from'].toString());
       return _add(doc, _tokens(path), _clone(_get(doc, from)));
     case 'test':
       // No-op for our purposes (we don't abort a patch on a failed test).

@@ -5,18 +5,45 @@ import 'genui_theme.dart';
 import 'genui_actions.dart';
 import 'genui_registry.dart';
 
+/// Maximum nesting depth for a single spec tree. A malicious or buggy model
+/// can emit a spec nested thousands of levels deep (e.g. a box inside a box…);
+/// without a cap that overflows the widget-build stack and crashes the app
+/// past any Flutter error boundary. 24 is far deeper than any real layout.
+const int kGenUiMaxDepth = 24;
+
+/// Propagates the current nesting depth down the widget tree so
+/// [buildGenUiSpec] can refuse to recurse past [kGenUiMaxDepth].
+class _GenUiDepth extends InheritedWidget {
+  const _GenUiDepth({required this.depth, required super.child});
+  final int depth;
+
+  static int of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_GenUiDepth>()?.depth ?? 0;
+
+  @override
+  bool updateShouldNotify(_GenUiDepth old) => old.depth != depth;
+}
+
 /// Builds the widget for a parsed `ui` spec by looking the type up in the
 /// pluggable [defaultGenUiRegistry]. Top-level so layout containers can render
-/// their children recursively. Unknown types degrade to a calm placeholder.
+/// their children recursively. Unknown types degrade to a calm placeholder,
+/// and nesting past [kGenUiMaxDepth] degrades the same way instead of
+/// overflowing the stack.
 Widget buildGenUiSpec(
   BuildContext context,
   Map<String, dynamic> spec,
   GenUiActions actions,
 ) {
+  final depth = _GenUiDepth.of(context);
+  if (depth >= kGenUiMaxDepth) {
+    return genUiPlaceholder(context, malformed: true);
+  }
   final type = (spec['type'] ?? '').toString();
   final builder = defaultGenUiRegistry.builderFor(type);
-  if (builder != null) return builder(context, spec, actions);
-  return genUiPlaceholder(context, type: type);
+  final child = builder != null
+      ? builder(context, spec, actions)
+      : genUiPlaceholder(context, type: type);
+  return _GenUiDepth(depth: depth + 1, child: child);
 }
 
 /// Calm fallback. With no [type] and not [malformed] (still streaming/unparsed)

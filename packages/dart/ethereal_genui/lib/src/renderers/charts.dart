@@ -31,7 +31,7 @@ class ChartRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final variant = (spec['chart'] ?? spec['variant'] ?? 'bar').toString();
-    final data = (spec['data'] as List<dynamic>? ?? const [])
+    final data = (spec['data'] is List ? spec['data'] as List<dynamic> : const [])
         .whereType<Map<String, dynamic>>()
         .map((e) => (
               label: (e['label'] ?? '').toString(),
@@ -45,10 +45,10 @@ class ChartRenderer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, spec['title'] as String?),
+          GenUi.title(context, spec['title']?.toString()),
           Semantics(
             label: chartSemanticLabel(
-                variant: variant, title: spec['title'] as String?, data: data),
+                variant: variant, title: spec['title']?.toString(), data: data),
             child: SizedBox(
               height: 200,
               child: ExcludeSemantics(

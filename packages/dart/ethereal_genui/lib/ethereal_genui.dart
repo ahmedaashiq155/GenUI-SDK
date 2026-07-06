@@ -24,7 +24,7 @@ export 'package:ethereal_genui_core/ethereal_genui_core.dart';
 // Flutter-layer
 export 'src/genui_actions.dart';
 export 'src/widgets/genui_chat.dart';
-export 'src/genui_block.dart' show buildGenUiSpec, genUiPlaceholder, GenUiBlock;
+export 'src/genui_block.dart' show buildGenUiSpec, genUiPlaceholder, GenUiBlock, kGenUiMaxDepth;
 export 'src/genui_registry.dart';
 export 'src/genui_state.dart';
 export 'src/genui_theme.dart';

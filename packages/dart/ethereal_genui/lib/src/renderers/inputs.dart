@@ -41,7 +41,7 @@ class _InputRendererState extends State<InputRenderer>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, (widget.spec['label'] ?? widget.spec['title']) as String?),
+          GenUi.title(context, (widget.spec['label'] ?? widget.spec['title'])?.toString()),
           TextField(
             controller: _controller,
             enabled: widget.actions.enabled,
@@ -110,7 +110,7 @@ class _MultiSelectRendererState extends State<MultiSelectRenderer>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, widget.spec['title'] as String?),
+          GenUi.title(context, widget.spec['title']?.toString()),
           Wrap(
             spacing: GenUiSpace.sm,
             runSpacing: GenUiSpace.sm,
@@ -173,11 +173,19 @@ class _SliderRendererState extends State<SliderRenderer>
   @override
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
-    final min = _num(widget.spec['min'], 0);
-    final max = _num(widget.spec['max'], 100);
+    final rawMin = _num(widget.spec['min'], 0);
+    final rawMax = _num(widget.spec['max'], 100);
+    // The model may emit min > max (e.g. a reversed "hot→cold" range).
+    // `num.clamp` throws if lower > upper (in all build modes), so normalize;
+    // if they collapse to a single point, widen by 1 so Slider stays valid.
+    var min = rawMin < rawMax ? rawMin : rawMax;
+    var max = rawMin < rawMax ? rawMax : rawMin;
+    if (min == max) max = min + 1;
     final step = _num(widget.spec['step'], 1);
+    // divisions must be null or >= 1; a large step vs range rounds to 0.
+    final rawDivisions = step > 0 ? ((max - min) / step).round() : 0;
+    final divisions = rawDivisions >= 1 ? rawDivisions : null;
     final unit = (widget.spec['unit'] ?? '').toString();
-    final divisions = step > 0 && max > min ? ((max - min) / step).round() : null;
     final display = (_value == _value.roundToDouble())
         ? _value.toInt().toString()
         : _value.toStringAsFixed(1);
@@ -189,7 +197,7 @@ class _SliderRendererState extends State<SliderRenderer>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: GenUi.title(context, (widget.spec['label'] ?? widget.spec['title']) as String?)),
+              Expanded(child: GenUi.title(context, (widget.spec['label'] ?? widget.spec['title'])?.toString())),
               Text('$display$unit',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.accent)),
             ],
@@ -253,7 +261,7 @@ class _FormRendererState extends State<FormRenderer>
   }
 
   List<Map<String, dynamic>> get _fields =>
-      (widget.spec['fields'] as List<dynamic>? ?? const [])
+      (widget.spec['fields'] is List ? widget.spec['fields'] as List<dynamic> : const [])
           .whereType<Map<String, dynamic>>()
           .toList();
 
@@ -287,7 +295,7 @@ class _FormRendererState extends State<FormRenderer>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, widget.spec['title'] as String?),
+          GenUi.title(context, widget.spec['title']?.toString()),
           for (final f in _fields) ...[
             _field(context, f, colors),
             const SizedBox(height: GenUiSpace.md),
@@ -309,7 +317,7 @@ class _FormRendererState extends State<FormRenderer>
 
     switch (type) {
       case 'toggle':
-        final value = (_values[key] as bool?) ?? (f['value'] == true);
+        final value = _values[key] is bool ? _values[key] as bool : (f['value'] == true);
         return Row(
           children: [
             Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyLarge)),

@@ -4,7 +4,7 @@ import '../genui_theme.dart';
 import '../genui_common.dart';
 
 List<Map<String, dynamic>> _maps(dynamic v) =>
-    (v as List<dynamic>? ?? const []).whereType<Map<String, dynamic>>().toList();
+    (v is List ? v : const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
 
 /// {"type":"card","title":"…","subtitle":"…","items":[{"label","value"}]}
 class CardRenderer extends StatelessWidget {
@@ -127,7 +127,7 @@ class StatRenderer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, spec['title'] as String?),
+          GenUi.title(context, spec['title']?.toString()),
           Wrap(
             spacing: GenUiSpace.lg,
             runSpacing: GenUiSpace.md,
@@ -169,13 +169,15 @@ class TableRenderer extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
     final text = Theme.of(context).textTheme;
-    final columns = (spec['columns'] as List<dynamic>? ?? const [])
+    final columns = (spec['columns'] is List ? spec['columns'] as List<dynamic> : const [])
         .map((e) => e.toString())
         .toList();
-    final rows = (spec['rows'] as List<dynamic>? ?? const [])
-        .map((r) => (r as List<dynamic>? ?? const []).map((e) => e.toString()).toList())
+    final rows = (spec['rows'] is List ? spec['rows'] as List<dynamic> : const [])
+        .map((r) => (r is List ? r : const <dynamic>[]).map((e) => e.toString()).toList())
         .toList();
-    if (columns.isEmpty && rows.isEmpty) return const SizedBox.shrink();
+    // DataTable asserts columns.isNotEmpty; rows without headers can't render
+    // meaningfully anyway, so collapse whenever there are no columns.
+    if (columns.isEmpty) return const SizedBox.shrink();
 
     return GenUi.frame(
       context,
@@ -219,7 +221,7 @@ class TimelineRenderer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, spec['title'] as String?),
+          GenUi.title(context, spec['title']?.toString()),
           for (var i = 0; i < items.length; i++)
             IntrinsicHeight(
               child: Row(
@@ -329,7 +331,7 @@ class BadgesRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
-    final items = (spec['items'] as List<dynamic>? ?? const [])
+    final items = (spec['items'] is List ? spec['items'] as List<dynamic> : const [])
         .map((e) => e.toString())
         .toList();
     return GenUi.frame(
@@ -363,7 +365,7 @@ class GalleryRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
-    final urls = (spec['images'] as List<dynamic>? ?? const [])
+    final urls = (spec['images'] is List ? spec['images'] as List<dynamic> : const [])
         .map((e) => e.toString())
         .where((u) => u.startsWith('http'))
         .toList();

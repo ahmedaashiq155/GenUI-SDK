@@ -171,7 +171,7 @@ class _ConverterRendererState extends State<ConverterRenderer> {
   @override
   void initState() {
     super.initState();
-    final units = (widget.spec['units'] as List<dynamic>? ?? const [])
+    final units = (widget.spec['units'] is List ? widget.spec['units'] as List<dynamic> : const [])
         .whereType<Map<String, dynamic>>()
         .toList();
     if (units.length >= 2) {
@@ -208,7 +208,7 @@ class _ConverterRendererState extends State<ConverterRenderer> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, widget.spec['title'] as String?),
+          GenUi.title(context, widget.spec['title']?.toString()),
           Row(
             children: [
               Expanded(

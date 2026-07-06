@@ -115,5 +115,40 @@ void main() {
       ]) as Map;
       expect(out, {'new': true});
     });
+
+    test('op with MISSING path is skipped — must not wipe the document', () {
+      final doc = {'app': 'running', 'count': 3};
+      // A truncated delta that lost its "path" — must be a no-op, not a
+      // whole-document replace.
+      final replaced = applyJsonPatch(doc, [
+        {'op': 'replace', 'value': {'oops': true}},
+      ]) as Map;
+      expect(replaced, doc);
+
+      // {"op":"remove"} with no path must not null the document.
+      final removed = applyJsonPatch(doc, [
+        {'op': 'remove'},
+      ]);
+      expect(removed, doc);
+
+      // add without path is skipped too.
+      final added = applyJsonPatch(doc, [
+        {'op': 'add', 'value': 42},
+      ]) as Map;
+      expect(added, doc);
+    });
+
+    test('move/copy with missing from is skipped', () {
+      final doc = {'a': 1, 'b': 2};
+      final moved = applyJsonPatch(doc, [
+        {'op': 'move', 'path': '/b'},
+      ]) as Map;
+      expect(moved, doc);
+
+      final copied = applyJsonPatch(doc, [
+        {'op': 'copy', 'path': '/c'},
+      ]) as Map;
+      expect(copied, doc);
+    });
   });
 }
