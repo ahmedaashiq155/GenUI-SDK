@@ -18,6 +18,10 @@ import '../genui_block.dart';
 ///   ),
 /// )
 /// ```
+///
+/// ⚠️ A [GenUiDirectConnection] built with a raw provider key ships that key
+/// inside the app and is unsafe for production — prototyping/internal only.
+/// See the security note on `GenUiDirectConnection` for the proxy pattern.
 class GenUiChat extends StatefulWidget {
   const GenUiChat({
     super.key,
@@ -53,12 +57,17 @@ class _GenUiChatState extends State<GenUiChat> {
 
     widget.onSendMessage?.call(text);
 
+    // The stream can outlive this State (user navigates away mid-response) —
+    // guard every setState after an await, or the next chunk throws
+    // "setState() called after dispose()".
     await for (final segs in widget.connection.sendMessage(text)) {
+      if (!mounted) return;
       setState(() {
         _turns.last = _ChatTurn(userText: text, segments: segs);
       });
     }
 
+    if (!mounted) return;
     setState(() => _sending = false);
   }
 

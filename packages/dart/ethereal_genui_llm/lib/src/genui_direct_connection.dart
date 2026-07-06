@@ -15,6 +15,11 @@ class _GenUiTool {
 /// injects the Ethereal GenUI block catalogue into the system prompt so the
 /// model knows how to emit structured UI blocks.
 ///
+/// ⚠️ The adapter you pass carries a provider API key that ships inside the
+/// app binary and is extractable by end users — use this only for local
+/// prototyping/internal tools, and proxy through your own backend in
+/// production. See the library-level docs in `ethereal_genui_llm.dart`.
+///
 /// Known limitation: in the tool-use loop, text emitted before a tool call
 /// is discarded from the next yield (assistantBuffer resets each loop
 /// iteration). This is by design — the host receives segments per-iteration.

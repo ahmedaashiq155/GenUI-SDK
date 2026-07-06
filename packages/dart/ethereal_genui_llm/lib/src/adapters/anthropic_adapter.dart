@@ -13,11 +13,17 @@ class AnthropicAdapter implements GenUiLlmAdapter {
     required this.apiKey,
     this.model = 'claude-sonnet-4-6',
     this.maxTokens = 8192,
-  });
+    http.Client? client,
+  }) : _injectedClient = client;
 
   final String apiKey;
   final String model;
   final int maxTokens;
+
+  /// Optional injected client (tests / connection pooling). When null a
+  /// client is created per call and closed when the stream ends. An injected
+  /// client is owned by the caller and never closed here.
+  final http.Client? _injectedClient;
 
   @override
   Stream<GenUiStreamEvent> stream(
@@ -103,61 +109,70 @@ class AnthropicAdapter implements GenUiLlmAdapter {
     request.headers['content-type'] = 'application/json';
     request.body = jsonEncode(body);
 
-    final response = await http.Client().send(request);
-    if (response.statusCode != 200) {
-      final errorBody = await response.stream.bytesToString();
-      throw Exception(
-          'Anthropic API error ${response.statusCode}: $errorBody');
-    }
+    final client = _injectedClient ?? http.Client();
+    final ownsClient = _injectedClient == null;
+    try {
+      final response = await client.send(request);
+      if (response.statusCode != 200) {
+        final errorBody = await response.stream.bytesToString();
+        throw Exception(
+            'Anthropic API error ${response.statusCode}: $errorBody');
+      }
 
-    String? currentToolName;
-    String? currentToolId;
-    final toolInputBuffer = StringBuffer();
+      String? currentToolName;
+      String? currentToolId;
+      final toolInputBuffer = StringBuffer();
 
-    await for (final line in response.stream
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())) {
-      if (line.startsWith('data: ')) {
-        final data = line.substring(6).trim();
-        if (data == '[DONE]' || data.isEmpty) continue;
+      await for (final line in response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())) {
+        if (line.startsWith('data: ')) {
+          final data = line.substring(6).trim();
+          if (data == '[DONE]' || data.isEmpty) continue;
 
-        final json = jsonDecode(data) as Map<String, dynamic>;
-        final type = json['type'] as String?;
+          final json = jsonDecode(data) as Map<String, dynamic>;
+          final type = json['type'] as String?;
 
-        if (type == 'content_block_delta') {
-          final delta = json['delta'] as Map<String, dynamic>?;
-          if (delta?['type'] == 'text_delta') {
-            yield GenUiTextChunk(delta!['text'] as String);
-          } else if (delta?['type'] == 'input_json_delta') {
-            toolInputBuffer.write(delta!['partial_json'] as String);
+          if (type == 'content_block_delta') {
+            final delta = json['delta'] as Map<String, dynamic>?;
+            if (delta?['type'] == 'text_delta') {
+              yield GenUiTextChunk(delta!['text'] as String);
+            } else if (delta?['type'] == 'input_json_delta') {
+              toolInputBuffer.write(delta!['partial_json'] as String);
+            }
+          } else if (type == 'content_block_start') {
+            final block = json['content_block'] as Map<String, dynamic>?;
+            if (block?['type'] == 'tool_use') {
+              currentToolName = block!['name'] as String;
+              // Anthropic always provides an id for tool_use blocks (toolu_xxx).
+              currentToolId = block['id'] as String;
+              toolInputBuffer.clear();
+            }
+          } else if (type == 'content_block_stop') {
+            if (currentToolName != null) {
+              final rawInput = toolInputBuffer.toString();
+              final args = rawInput.isEmpty
+                  ? <String, dynamic>{}
+                  : jsonDecode(rawInput) as Map<String, dynamic>;
+              yield GenUiToolCallEvent(
+                id: currentToolId!,
+                name: currentToolName,
+                args: args,
+              );
+              currentToolName = null;
+              currentToolId = null;
+            }
+          } else if (type == 'message_delta') {
+            final delta = json['delta'] as Map<String, dynamic>?;
+            yield GenUiStopEvent(stopReason: delta?['stop_reason'] as String?);
           }
-        } else if (type == 'content_block_start') {
-          final block = json['content_block'] as Map<String, dynamic>?;
-          if (block?['type'] == 'tool_use') {
-            currentToolName = block!['name'] as String;
-            // Anthropic always provides an id for tool_use blocks (toolu_xxx).
-            currentToolId = block['id'] as String;
-            toolInputBuffer.clear();
-          }
-        } else if (type == 'content_block_stop') {
-          if (currentToolName != null) {
-            final rawInput = toolInputBuffer.toString();
-            final args = rawInput.isEmpty
-                ? <String, dynamic>{}
-                : jsonDecode(rawInput) as Map<String, dynamic>;
-            yield GenUiToolCallEvent(
-              id: currentToolId!,
-              name: currentToolName,
-              args: args,
-            );
-            currentToolName = null;
-            currentToolId = null;
-          }
-        } else if (type == 'message_delta') {
-          final delta = json['delta'] as Map<String, dynamic>?;
-          yield GenUiStopEvent(stopReason: delta?['stop_reason'] as String?);
         }
       }
+    } finally {
+      // Close on success, error, and early cancellation alike — a client per
+      // call that is never closed leaks sockets for the app's lifetime. Only
+      // close what we created; an injected client belongs to the caller.
+      if (ownsClient) client.close();
     }
   }
 }

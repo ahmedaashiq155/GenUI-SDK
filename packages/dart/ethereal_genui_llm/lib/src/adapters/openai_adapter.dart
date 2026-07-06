@@ -12,11 +12,17 @@ class OpenAiAdapter implements GenUiLlmAdapter {
     required this.apiKey,
     this.model = 'gpt-4o',
     this.maxTokens = 8192,
-  });
+    http.Client? client,
+  }) : _injectedClient = client;
 
   final String apiKey;
   final String model;
   final int maxTokens;
+
+  /// Optional injected client (tests / connection pooling). When null a
+  /// client is created per call and closed when the stream ends. An injected
+  /// client is owned by the caller and never closed here.
+  final http.Client? _injectedClient;
 
   @override
   Stream<GenUiStreamEvent> stream(
@@ -83,7 +89,10 @@ class OpenAiAdapter implements GenUiLlmAdapter {
     request.headers['content-type'] = 'application/json';
     request.body = jsonEncode(body);
 
-    final response = await http.Client().send(request);
+    final client = _injectedClient ?? http.Client();
+    final ownsClient = _injectedClient == null;
+    try {
+    final response = await client.send(request);
     if (response.statusCode != 200) {
       final errorBody = await response.stream.bytesToString();
       throw Exception('OpenAI API error ${response.statusCode}: $errorBody');
@@ -150,6 +159,12 @@ class OpenAiAdapter implements GenUiLlmAdapter {
           }
         }
       }
+    }
+    } finally {
+      // Close on success, error, and early cancellation alike — a client per
+      // call that is never closed leaks sockets for the app's lifetime. Only
+      // close what we created; an injected client belongs to the caller.
+      if (ownsClient) client.close();
     }
   }
 }
