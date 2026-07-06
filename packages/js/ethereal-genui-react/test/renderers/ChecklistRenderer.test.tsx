@@ -42,4 +42,14 @@ describe('ChecklistRenderer', () => {
     expect(el.className).toBe('chk-cls')
     expect(el.style.padding).toBe('4px')
   })
+
+  it('rows are checkboxes with aria-checked that toggles', () => {
+    render(<ChecklistRenderer spec={{ type: 'checklist', items: ['Buy milk'] }} onSend={vi.fn()} />)
+    const row = screen.getByRole('checkbox', { name: /Buy milk/ })
+    expect(row.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(row)
+    expect(row.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(row)
+    expect(row.getAttribute('aria-checked')).toBe('false')
+  })
 })

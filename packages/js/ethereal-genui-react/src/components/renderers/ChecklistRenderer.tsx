@@ -1,6 +1,7 @@
 import React from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
 import { usePersistedState } from '../../provider.js'
+import { Pressable } from '../Pressable.js'
 
 export interface ChecklistRendererProps {
   spec: Record<string, unknown>
@@ -66,18 +67,20 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
       {options.map((opt, i) => {
         const isChecked = checkedSet.has(i)
         return (
-          <div
+          <Pressable
             key={opt.value}
-            onClick={() => toggle(i)}
+            role="checkbox"
+            aria-checked={isChecked}
+            onPress={() => toggle(i)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 'var(--ethereal-space-sm)',
-              cursor: 'pointer',
               padding: '5px 0',
+              width: '100%',
             }}
           >
-            <span style={{
+            <span aria-hidden="true" style={{
               fontSize: '1.25rem',
               color: isChecked ? 'var(--ethereal-accent)' : 'var(--ethereal-text-tertiary)',
               lineHeight: 1,
@@ -91,7 +94,7 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
             }}>
               {opt.label}
             </span>
-          </div>
+          </Pressable>
         )
       })}
       <button

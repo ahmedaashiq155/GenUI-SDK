@@ -1,6 +1,7 @@
 import React from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
 import { usePersistedState } from '../../provider.js'
+import { Pressable } from '../Pressable.js'
 
 export interface QuizRendererProps {
   spec: Record<string, unknown>
@@ -72,17 +73,23 @@ export function QuizRenderer({ spec, onSend: _onSend, className, style }: QuizRe
         }
 
         return (
-          <div
+          <Pressable
             key={opt.value}
             data-correct={isCorrect || undefined}
             data-wrong={isWrong || undefined}
-            onClick={() => !answered && setPicked(i)}
+            disabled={answered}
+            aria-label={
+              isCorrect ? `${opt.label} — correct answer`
+                : isWrong ? `${opt.label} — incorrect`
+                : opt.label
+            }
+            onPress={() => setPicked(i)}
             style={{
+              width: '100%',
               padding: 'var(--ethereal-space-md)',
               borderRadius: 'var(--ethereal-radius-md)',
               border: `1px solid ${borderColor}`,
               backgroundColor: bgColor,
-              cursor: answered ? 'default' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -92,7 +99,7 @@ export function QuizRenderer({ spec, onSend: _onSend, className, style }: QuizRe
           >
             <span>{opt.label}</span>
             {icon && (
-              <span style={{
+              <span aria-hidden="true" style={{
                 fontSize: '1rem',
                 color: isCorrect
                   ? 'var(--ethereal-celadon)'
@@ -101,7 +108,7 @@ export function QuizRenderer({ spec, onSend: _onSend, className, style }: QuizRe
                 {icon}
               </span>
             )}
-          </div>
+          </Pressable>
         )
       })}
       {answered && explanation && (

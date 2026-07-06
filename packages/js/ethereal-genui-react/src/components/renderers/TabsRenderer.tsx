@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useId, useState } from 'react'
 import { GenUiBlock } from '../GenUiBlock.js'
 
 export interface TabsRendererProps {
@@ -17,6 +17,7 @@ interface TabItem {
 export function TabsRenderer({ spec, onSend, className, style }: TabsRendererProps) {
   const tabs = (spec.tabs as TabItem[] | undefined) ?? []
   const [index, setIndex] = useState(0)
+  const idBase = useId()
 
   if (tabs.length === 0) return null
 
@@ -35,6 +36,7 @@ export function TabsRenderer({ spec, onSend, className, style }: TabsRendererPro
       }}
     >
       <div
+        role="tablist"
         style={{
           overflowX: 'auto',
           whiteSpace: 'nowrap',
@@ -49,6 +51,11 @@ export function TabsRenderer({ spec, onSend, className, style }: TabsRendererPro
           return (
             <button
               key={idx}
+              role="tab"
+              id={`${idBase}-tab-${idx}`}
+              aria-selected={isActive}
+              aria-controls={isActive ? `${idBase}-panel-${i}` : undefined}
+              className="ethereal-pressable"
               onClick={() => setIndex(idx)}
               style={{
                 borderRadius: 'var(--ethereal-radius-pill)',
@@ -72,7 +79,12 @@ export function TabsRenderer({ spec, onSend, className, style }: TabsRendererPro
           )
         })}
       </div>
-      <div style={{ width: '100%' }}>
+      <div
+        role="tabpanel"
+        id={`${idBase}-panel-${i}`}
+        aria-labelledby={`${idBase}-tab-${i}`}
+        style={{ width: '100%' }}
+      >
         {activeTab.content && typeof activeTab.content === 'object' && !Array.isArray(activeTab.content) ? (
           <GenUiBlock
             spec={activeTab.content as Record<string, unknown>}

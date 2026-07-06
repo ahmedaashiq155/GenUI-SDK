@@ -48,18 +48,25 @@ export function SegmentedRenderer({ spec, onSend, className, style }: SegmentedR
           {title}
         </p>
       )}
-      <div style={{
-        display: 'flex',
-        padding: '3px',
-        borderRadius: 'var(--ethereal-radius-md)',
-        backgroundColor: 'color-mix(in srgb, var(--ethereal-surface) 60%, transparent)',
-        border: '1px solid var(--ethereal-hairline)',
-      }}>
+      <div
+        role="radiogroup"
+        aria-label={title}
+        style={{
+          display: 'flex',
+          padding: '3px',
+          borderRadius: 'var(--ethereal-radius-md)',
+          backgroundColor: 'color-mix(in srgb, var(--ethereal-surface) 60%, transparent)',
+          border: '1px solid var(--ethereal-hairline)',
+        }}
+      >
         {options.map((opt, i) => {
           const isSelected = i === selectedIndex
           return (
             <button
               key={opt.value}
+              role="radio"
+              aria-checked={isSelected}
+              className="ethereal-pressable"
               onClick={() => handleClick(i)}
               style={{
                 flex: 1,

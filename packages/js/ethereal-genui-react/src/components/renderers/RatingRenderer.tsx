@@ -56,7 +56,7 @@ export function RatingRenderer({ spec, onSend, className, style }: RatingRendere
           {label}
         </p>
       )}
-      <div style={{ display: 'flex', gap: '4px' }}>
+      <div role="group" aria-label={label ?? 'Rating'} style={{ display: 'flex', gap: '4px' }}>
         {Array.from({ length: max }, (_, idx) => {
           const starNum = idx + 1
           const filled = starNum <= value
@@ -64,6 +64,9 @@ export function RatingRenderer({ spec, onSend, className, style }: RatingRendere
             <button
               key={starNum}
               onClick={() => handleClick(starNum)}
+              aria-label={`Rate ${starNum} out of ${max}`}
+              aria-pressed={filled}
+              className="ethereal-pressable"
               style={{
                 background: 'none',
                 border: 'none',
@@ -74,7 +77,7 @@ export function RatingRenderer({ spec, onSend, className, style }: RatingRendere
                 lineHeight: 1,
               }}
             >
-              {filled ? '★' : '☆'}
+              <span aria-hidden="true">{filled ? '★' : '☆'}</span>
             </button>
           )
         })}

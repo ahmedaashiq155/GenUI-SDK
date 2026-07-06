@@ -52,4 +52,13 @@ describe('QuizRenderer', () => {
     expect(el.className).toBe('quiz-cls')
     expect(el.style.padding).toBe('5px')
   })
+
+  it('options are buttons, disabled after answering, with outcome in the accessible name', () => {
+    render(<QuizRenderer spec={{ type: 'quiz', question: 'Q?', options: ['A', 'B'], answer: 1 }} onSend={vi.fn()} />)
+    const a = screen.getByRole('button', { name: 'A' })
+    expect(a.tagName).toBe('BUTTON')
+    fireEvent.click(a) // wrong pick
+    expect(screen.getByRole('button', { name: 'A — incorrect' }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('button', { name: 'B — correct answer' }).hasAttribute('disabled')).toBe(true)
+  })
 })

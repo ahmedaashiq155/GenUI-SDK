@@ -54,13 +54,20 @@ export function ProgressRenderer({ spec, className, style }: ProgressRendererPro
           {pct}%
         </span>
       </div>
-      <div style={{
-        width: '100%',
-        height: 8,
-        borderRadius: 99,
-        backgroundColor: 'color-mix(in srgb, var(--ethereal-accent) 14%, transparent)',
-        overflow: 'hidden',
-      }}>
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+        aria-label={label ?? 'Progress'}
+        style={{
+          width: '100%',
+          height: 8,
+          borderRadius: 99,
+          backgroundColor: 'color-mix(in srgb, var(--ethereal-accent) 14%, transparent)',
+          overflow: 'hidden',
+        }}
+      >
         <div style={{
           width: `${pct}%`,
           height: '100%',

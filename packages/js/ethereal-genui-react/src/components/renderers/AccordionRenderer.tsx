@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useId, useState } from 'react'
 import { GenUiBlock } from '../GenUiBlock.js'
+import { Pressable } from '../Pressable.js'
 
 export interface AccordionRendererProps {
   spec: Record<string, unknown>
@@ -17,6 +18,7 @@ interface AccordionItem {
 export function AccordionRenderer({ spec, onSend, className, style }: AccordionRendererProps) {
   const items = (spec.items as AccordionItem[] | undefined) ?? []
   const [openIndices, setOpenIndices] = useState<Set<number>>(new Set())
+  const idBase = useId()
 
   const toggle = (i: number) => {
     setOpenIndices(prev => {
@@ -36,6 +38,7 @@ export function AccordionRenderer({ spec, onSend, className, style }: AccordionR
     >
       {items.map((item, i) => {
         const isOpen = openIndices.has(i)
+        const panelId = `${idBase}-panel-${i}`
         return (
           <div
             key={i}
@@ -46,23 +49,27 @@ export function AccordionRenderer({ spec, onSend, className, style }: AccordionR
               margin: '3px 0',
             }}
           >
-            <div
-              onClick={() => toggle(i)}
+            <Pressable
+              onPress={() => toggle(i)}
+              aria-expanded={isOpen}
+              aria-controls={panelId}
               style={{
+                width: '100%',
                 padding: 'var(--ethereal-space-md)',
-                cursor: 'pointer',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
               }}
             >
               <span>{item.title}</span>
-              <span style={{ color: 'var(--ethereal-text-secondary)' }}>
+              <span aria-hidden="true" style={{ color: 'var(--ethereal-text-secondary)' }}>
                 {isOpen ? '▴' : '▾'}
               </span>
-            </div>
+            </Pressable>
             {isOpen && (
               <div
+                id={panelId}
+                role="region"
                 style={{
                   padding: '0 var(--ethereal-space-md) var(--ethereal-space-md)',
                 }}

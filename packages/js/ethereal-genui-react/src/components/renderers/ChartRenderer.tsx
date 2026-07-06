@@ -12,6 +12,23 @@ interface DataPoint {
   value: number
 }
 
+/**
+ * Screen-reader summary for a chart — cross-language parity with Dart's
+ * `chartSemanticLabel` (same wording and number formatting), e.g.
+ * "Weekly sales. Bar chart: Mon 3, Tue 5.5".
+ */
+export function chartSemanticLabel(
+  variant: string,
+  title: string | undefined,
+  data: DataPoint[],
+): string {
+  const kind = variant === 'pie' ? 'Pie chart' : variant === 'line' ? 'Line chart' : 'Bar chart'
+  const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1))
+  const points = data.map(d => `${d.label} ${fmt(d.value)}`).join(', ')
+  const titlePart = title ? `${title}. ` : ''
+  return `${titlePart}${kind}: ${points}`
+}
+
 const PIE_PALETTE = [
   'var(--ethereal-accent)',
   'var(--ethereal-celadon)',
@@ -228,13 +245,17 @@ export function ChartRenderer({ spec, className, style }: ChartRendererProps) {
           {title}
         </p>
       )}
-      {chartType === 'line' ? (
-        <LineChart data={data} />
-      ) : chartType === 'pie' ? (
-        <PieChart data={data} />
-      ) : (
-        <BarChart data={data} />
-      )}
+      <div role="img" aria-label={chartSemanticLabel(chartType, title, data)}>
+        <div aria-hidden="true">
+          {chartType === 'line' ? (
+            <LineChart data={data} />
+          ) : chartType === 'pie' ? (
+            <PieChart data={data} />
+          ) : (
+            <BarChart data={data} />
+          )}
+        </div>
+      </div>
     </div>
   )
 }

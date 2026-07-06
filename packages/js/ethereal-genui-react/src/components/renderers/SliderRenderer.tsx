@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useId } from 'react'
 import { usePersistedState } from '../../provider.js'
 
 export interface SliderRendererProps {
@@ -28,6 +28,7 @@ export function SliderRenderer({ spec, onSend, className, style }: SliderRendere
 
   const [value, setValue] = usePersistedState<number>(id, toNum(spec.value, min))
   const display = Number.isInteger(value) ? String(value) : value.toFixed(1)
+  const sliderId = useId()
 
   return (
     <div
@@ -46,7 +47,7 @@ export function SliderRenderer({ spec, onSend, className, style }: SliderRendere
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {label && (
-          <p style={{
+          <label htmlFor={sliderId} style={{
             margin: 0,
             fontWeight: 600,
             color: 'var(--ethereal-text-primary)',
@@ -55,7 +56,7 @@ export function SliderRenderer({ spec, onSend, className, style }: SliderRendere
             flex: 1,
           }}>
             {label}
-          </p>
+          </label>
         )}
         <span style={{
           fontWeight: 600,
@@ -66,7 +67,9 @@ export function SliderRenderer({ spec, onSend, className, style }: SliderRendere
         </span>
       </div>
       <input
+        id={sliderId}
         type="range"
+        aria-label={label ? undefined : 'Slider'}
         min={min}
         max={max}
         step={step}

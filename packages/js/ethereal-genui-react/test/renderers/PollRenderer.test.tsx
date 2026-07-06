@@ -45,4 +45,17 @@ describe('PollRenderer', () => {
     expect(el.className).toBe('poll-cls')
     expect(el.style.padding).toBe('5px')
   })
+
+  it('options are buttons; disabled after voting with aria-pressed on the voted one', () => {
+    render(<PollRenderer spec={{ type: 'poll', options: ['Cats', 'Dogs'] }} onSend={vi.fn()} />)
+    const cats = screen.getByRole('button', { name: /Cats/ })
+    expect(cats.tagName).toBe('BUTTON')
+    expect(cats.hasAttribute('disabled')).toBe(false)
+    fireEvent.click(cats)
+    expect(cats.getAttribute('aria-pressed')).toBe('true')
+    expect(cats.hasAttribute('disabled')).toBe(true)
+    const dogs = screen.getByRole('button', { name: /Dogs/ })
+    expect(dogs.hasAttribute('disabled')).toBe(true)
+    expect(dogs.getAttribute('aria-pressed')).toBe('false')
+  })
 })

@@ -67,4 +67,19 @@ describe('AccordionRenderer', () => {
     expect(el.className).toBe('accordion-cls')
     expect(el.style.margin).toBe('4px')
   })
+
+  it('header is a real button with aria-expanded reflecting open state', () => {
+    render(
+      <AccordionRenderer
+        spec={{ type: 'accordion', items: [{ title: 'Q', text: 'Answer here' }] }}
+        onSend={vi.fn()}
+      />
+    )
+    const header = screen.getByRole('button', { name: /Q/ })
+    expect(header.tagName).toBe('BUTTON')
+    expect(header.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(header)
+    expect(header.getAttribute('aria-expanded')).toBe('true')
+    expect(header.getAttribute('aria-controls')).toBeTruthy()
+  })
 })

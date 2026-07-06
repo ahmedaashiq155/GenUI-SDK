@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useId, useState } from 'react'
 
 export interface InputRendererProps {
   spec: Record<string, unknown>
@@ -12,6 +12,7 @@ export function InputRenderer({ spec, onSend, className, style }: InputRendererP
   const placeholder = String(spec.placeholder ?? 'Type your answer')
   const submitLabel = String(spec.submitLabel ?? 'Send')
   const [text, setText] = useState('')
+  const areaId = useId()
 
   const handleSubmit = () => {
     const trimmed = text.trim()
@@ -36,7 +37,7 @@ export function InputRenderer({ spec, onSend, className, style }: InputRendererP
       }}
     >
       {label && (
-        <p style={{
+        <label htmlFor={areaId} style={{
           margin: 0,
           fontWeight: 600,
           color: 'var(--ethereal-text-primary)',
@@ -45,9 +46,11 @@ export function InputRenderer({ spec, onSend, className, style }: InputRendererP
           paddingBottom: 'var(--ethereal-space-sm)',
         }}>
           {label}
-        </p>
+        </label>
       )}
       <textarea
+        id={areaId}
+        aria-label={label ? undefined : placeholder}
         rows={1}
         value={text}
         onChange={(e) => setText(e.target.value)}

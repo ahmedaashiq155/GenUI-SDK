@@ -88,6 +88,7 @@ export function ConverterRenderer({ spec, className, style }: ConverterRendererP
         <input
           type="text"
           inputMode="decimal"
+          aria-label={title ?? 'Value to convert'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           style={{
@@ -102,6 +103,7 @@ export function ConverterRenderer({ spec, className, style }: ConverterRendererP
           }}
         />
         <select
+          aria-label="From unit"
           value={fromIdx}
           onChange={(e) => setFromIdx(Number(e.target.value))}
           style={selectStyle}
@@ -113,7 +115,7 @@ export function ConverterRenderer({ spec, className, style }: ConverterRendererP
       </div>
 
       {/* Swap icon */}
-      <div style={{
+      <div aria-hidden="true" style={{
         textAlign: 'center',
         color: 'var(--ethereal-text-tertiary)',
         fontSize: '1.25rem',
@@ -125,7 +127,7 @@ export function ConverterRenderer({ spec, className, style }: ConverterRendererP
 
       {/* Result row */}
       <div style={{ display: 'flex', gap: 'var(--ethereal-space-sm)', alignItems: 'center' }}>
-        <span style={{
+        <span aria-live="polite" style={{
           flex: 1,
           padding: '8px var(--ethereal-space-sm)',
           fontSize: '1.25rem',
@@ -136,6 +138,7 @@ export function ConverterRenderer({ spec, className, style }: ConverterRendererP
           {resultStr}
         </span>
         <select
+          aria-label="To unit"
           value={toIdx}
           onChange={(e) => setToIdx(Number(e.target.value))}
           style={selectStyle}

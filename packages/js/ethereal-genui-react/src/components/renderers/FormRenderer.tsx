@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useId } from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
 import { usePersistedState } from '../../provider.js'
 
@@ -19,6 +19,7 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
 
   const [values, setValues] = usePersistedState<Record<string, unknown>>(id, {})
   const setField = (key: string, v: unknown) => setValues({ ...values, [key]: v })
+  const idBase = useId()
 
   const handleSubmit = () => {
     const lines = fields
@@ -87,10 +88,12 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
 
         if (fieldType === 'toggle') {
           const boolVal = (values[key] as boolean | undefined) ?? (f.value === true)
+          const fieldId = `${idBase}-f${idx}`
           return (
             <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--ethereal-text-primary)', fontSize: '1rem' }}>{fieldLabel}</span>
+              <label htmlFor={fieldId} style={{ color: 'var(--ethereal-text-primary)', fontSize: '1rem' }}>{fieldLabel}</label>
               <input
+                id={fieldId}
                 type="checkbox"
                 checked={boolVal}
                 onChange={(e) => setField(key, e.target.checked)}
@@ -105,12 +108,14 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
           return (
             <div key={idx} style={{ display: 'flex', flexDirection: 'column' }}>
               <p style={labelStyle}>{fieldLabel}</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--ethereal-space-sm)' }}>
+              <div role="group" aria-label={fieldLabel} style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--ethereal-space-sm)' }}>
                 {options.map((opt) => {
                   const isSel = values[key] === opt.value
                   return (
                     <button
                       key={opt.value}
+                      aria-pressed={isSel}
+                      className="ethereal-pressable"
                       onClick={() => setField(key, opt.value)}
                       style={{
                         padding: '5px calc(var(--ethereal-space-md) + 2px)',
@@ -135,10 +140,12 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
         }
 
         // text | number
+        const fieldId = `${idBase}-f${idx}`
         return (
           <div key={idx} style={{ display: 'flex', flexDirection: 'column' }}>
-            <p style={labelStyle}>{fieldLabel}</p>
+            <label htmlFor={fieldId} style={labelStyle}>{fieldLabel}</label>
             <input
+              id={fieldId}
               type={fieldType === 'number' ? 'number' : 'text'}
               value={String(values[key] ?? '')}
               placeholder={String(f.placeholder ?? '')}

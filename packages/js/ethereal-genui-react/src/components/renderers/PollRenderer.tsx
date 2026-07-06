@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { usePersistedState } from '../../provider.js'
+import { Pressable } from '../Pressable.js'
 
 export interface PollRendererProps {
   spec: Record<string, unknown>
@@ -76,25 +77,29 @@ export function PollRenderer({ spec, onSend, className, style }: PollRendererPro
         const pct = votedIndex >= 0 ? votes[i] / total : 0
         const isVoted = i === votedIndex
         return (
-          <div
+          <Pressable
             key={i}
-            onClick={() => handleVote(i)}
+            onPress={() => handleVote(i)}
+            disabled={votedIndex >= 0}
+            aria-pressed={isVoted}
             style={{
               position: 'relative',
+              display: 'block',
+              width: '100%',
               height: '40px',
               borderRadius: 'var(--ethereal-radius-sm, 6px)',
               backgroundColor: 'color-mix(in srgb, var(--ethereal-surface) 50%, transparent)',
               border: '1px solid var(--ethereal-hairline)',
               overflow: 'hidden',
-              cursor: votedIndex < 0 ? 'pointer' : 'default',
             }}
           >
             {/* Fill bar */}
             {votedIndex >= 0 && (
-              <div style={{
+              <span aria-hidden="true" style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
+                display: 'block',
                 height: '100%',
                 width: `${Math.max(pct * 100, pct > 0 ? 0.5 : 0)}%`,
                 minWidth: pct > 0 ? '2px' : '0',
@@ -105,7 +110,7 @@ export function PollRenderer({ spec, onSend, className, style }: PollRendererPro
               }} />
             )}
             {/* Label row */}
-            <div style={{
+            <span style={{
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
@@ -128,8 +133,8 @@ export function PollRenderer({ spec, onSend, className, style }: PollRendererPro
                   {Math.round(pct * 100)}%
                 </span>
               )}
-            </div>
-          </div>
+            </span>
+          </Pressable>
         )
       })}
     </div>
