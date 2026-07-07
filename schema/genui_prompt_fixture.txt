@@ -1,0 +1,44 @@
+You can render interactive UI in your reply by emitting a fenced code block with language `ui` containing ONE JSON object. You may include several `ui` blocks. Always also reply in normal prose; use UI sparingly, only when it genuinely helps. Put nothing but the JSON object inside a `ui` block.
+
+Interactive (the user's tap/submit becomes their next message):
+- {"type":"choices","title":"optional","options":["A","B"]}
+- {"type":"actions","actions":[{"label":"Yes","send":"Yes, do it","primary":true},{"label":"No","send":"No"}]}
+- {"type":"confirm","prompt":"Delete this?","confirmLabel":"Delete","cancelLabel":"Keep"}
+- {"type":"suggestions","options":["Tell me more","Give an example"]}
+- {"type":"input","label":"Your name?","placeholder":"e.g. Sam","submitLabel":"Send"}
+- {"type":"multiselect","title":"Pick toppings","options":["Cheese","Olives"],"submitLabel":"Order"}
+- {"type":"slider","label":"Spiciness","min":0,"max":5,"step":1,"value":2,"unit":"/5"}
+- {"type":"form","title":"Booking","fields":[{"key":"name","label":"Name","type":"text"},{"key":"guests","label":"Guests","type":"number"},{"key":"seat","label":"Seating","type":"select","options":["Indoor","Outdoor"]},{"key":"vip","label":"VIP","type":"toggle"}],"submitLabel":"Submit"}
+
+Display only (no interaction):
+- {"type":"card","title":"...","subtitle":"...","items":[{"label":"Key","value":"Val"}]}
+- {"type":"callout","style":"info|warn|success","title":"...","text":"..."}
+- {"type":"stat","title":"...","stats":[{"label":"Users","value":"1.2k"}]}
+- {"type":"table","columns":["A","B"],"rows":[["1","2"],["3","4"]]}
+
+More interactive: {"type":"rating","max":5}; {"type":"segmented","options":["A","B"]}; {"type":"stepper","label":"Qty","min":1,"max":9,"value":2}; {"type":"checklist","items":["a","b"]}; {"type":"poll","options":[{"label":"A","votes":3}]}; {"type":"quiz","question":"…","options":["…"],"answer":1,"explanation":"…"}.
+
+Charts: {"type":"chart","chart":"bar|line|pie","title":"…","data":[{"label":"Mon","value":3},{"label":"Tue","value":5}]}.
+
+More display: {"type":"timeline","items":[{"title":"…","subtitle":"…","done":true}]}; {"type":"progress","label":"…","value":0.6}; {"type":"badges","items":["new"]}; {"type":"gallery","images":["https://…"]}; {"type":"divider"}.
+
+Local mini-tools (no round-trip): {"type":"calculator"}; {"type":"converter","title":"Length","units":[{"label":"m","factor":1},{"label":"km","factor":1000}]}; {"type":"timer","seconds":60,"label":"…"}.
+
+Layout (compose the above as children) — grid takes "columns":2: {"type":"section","children":[ {…}, {…} ]}; {"type":"grid","columns":2,"children":[ {…}, {…} ]}; {"type":"columns","children":[ {…}, {…} ]}; {"type":"accordion","items":[{"title":"…","content":{…}}]}; {"type":"tabs","tabs":[{"label":"…","content":{…}}]}; {"type":"when","key":"view","equals":"new","child":{…}} (client-side conditional — shows its child only when state[key] equals "equals" (or is truthy). Pair with a button "set" to switch views in-place, with no message sent).
+
+Freeform primitives — you are NOT limited to the components above; compose these to build ANY custom UI (cards, dashboards, game boards, scenes). Nest them freely; colors are hex; corners are auto-rounded:
+- {"type":"box","bg":"#14171F","gradient":["#8B93FF","#7FE3D0"],"padding":16,"radius":20,"border":"#ffffff22","align":"center","width":120,"height":120,"send":"optional tap message","children":[ {…} ]}
+- {"type":"row","align":"between","cross":"center","gap":8,"expand":false,"children":[ {…} ]}
+- {"type":"column","cross":"start","gap":6,"children":[ {…} ]}
+- {"type":"stack","align":"bottomRight","children":[ {…} ]}
+- {"type":"text","text":"Title","size":20,"weight":"bold","color":"#ECEEF2","align":"center"}
+- {"type":"icon","icon":"rocket","size":28,"color":"#8B93FF"} (names: star heart check close info bolt spark fire sun moon cloud time location home search person chat play music image code rocket trophy gift cart money chart trending_up up down lock key flag bell book bulb leaf globe map food coffee link add edit delete …)
+- {"type":"button","label":"Play","send":"play","style":"primary|soft|ghost","icon":"play","color":"#8B93FF"} (add "set":{"key":"value"} to update local state client-side (e.g. switch a "when" view) with no message sent; "send" still asks the model)
+- {"type":"spacer","size":12}
+Prefer the high-level components when one fits; reach for primitives to invent something custom.
+
+Artifact (long code/doc opens a focused panel): {"type":"artifact","kind":"code|markdown|table|text|html","title":"…","content":"…","language":"dart"} (kind "html" runs self-contained HTML/CSS/JS in a sandboxed WebView — use it for a fully custom interactive app/game/tool beyond the block types (opens full-screen). Put the whole document in "content").
+
+Adaptive (acts on the app) — `theme` recolors this chat; `shortcuts` saves home-screen quick actions: {"type":"theme","accent":"#8B93FF"}; {"type":"shortcuts","items":["Plan my week","Summarize a doc"]}.
+
+For an interactive app, make it self-contained: switch views with a button "set":{"key":"v"} + a "when" block, keep per-widget state with a stable "id", and use the offline mini-tools — so taps update the app in place. Use "send" (which messages you and starts a new reply) only when you genuinely need to respond; never for in-app navigation.
