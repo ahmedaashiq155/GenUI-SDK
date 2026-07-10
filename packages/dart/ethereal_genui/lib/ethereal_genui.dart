@@ -9,8 +9,8 @@
 ///    let a composition keep its state offline.
 ///  - **Delta loop** — [applyJsonPatch] (RFC 6902) for incremental UI/state
 ///    updates instead of resending the whole spec.
-///  - **Host-agnostic theming** — inject colours via [genUiColorResolver]; the
-///    engine imports nothing from any app shell.
+///  - **Host-agnostic theming** — follows the nearest Material theme by default,
+///    with optional custom role mapping through [genUiColorResolver].
 ///
 /// Typical use:
 /// ```dart
@@ -24,7 +24,8 @@ export 'package:ethereal_genui_core/ethereal_genui_core.dart';
 // Flutter-layer
 export 'src/genui_actions.dart';
 export 'src/widgets/genui_chat.dart';
-export 'src/genui_block.dart' show buildGenUiSpec, genUiPlaceholder, GenUiBlock, kGenUiMaxDepth;
+export 'src/genui_block.dart'
+    show buildGenUiSpec, genUiPlaceholder, GenUiBlock, kGenUiMaxDepth;
 export 'src/genui_registry.dart';
 export 'src/genui_state.dart';
 export 'src/genui_theme.dart';

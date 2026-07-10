@@ -25,18 +25,19 @@ things none of them have together:
 ```dart
 import 'package:ethereal_genui/ethereal_genui.dart';
 
-// 1) (optional) bridge your app's theme so blocks match your design system:
-genUiColorResolver = (context) => GenUiColors(
-      accent: Theme.of(context).colorScheme.primary,
-      // …map the rest…
-    );
-
-// 2) render a model-authored spec:
+// Blocks follow the nearest Material Theme automatically.
 buildGenUiSpec(
   context,
   {'type': 'choices', 'title': 'Pick one', 'options': ['A', 'B']},
   GenUiActions(sendMessage: (text) => print('user chose $text')),
 );
+```
+
+For a custom role mapping, set `genUiColorResolver` once at startup. The
+original Ethereal dark palette remains available as an explicit preset:
+
+```dart
+genUiColorResolver = (_) => GenUiColors.nocturne;
 ```
 
 Tell the model what it can emit with the generated catalogue:

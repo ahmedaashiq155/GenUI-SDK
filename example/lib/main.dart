@@ -49,7 +49,9 @@ class _ExampleAppState extends State<ExampleApp> {
     );
     return MaterialApp(
       title: 'ethereal_genui example',
-      theme: ThemeData.dark(useMaterial3: true),
+      theme: ThemeData(useMaterial3: true),
+      darkTheme: ThemeData.dark(useMaterial3: true),
+      themeMode: ThemeMode.system,
       home: Scaffold(
         appBar: AppBar(title: const Text('ethereal_genui')),
         body: ListView(

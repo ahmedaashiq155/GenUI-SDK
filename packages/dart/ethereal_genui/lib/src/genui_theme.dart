@@ -3,14 +3,13 @@
 /// standalone package: renderers read colours, spacing, radii, motion and the
 /// shape/press primitives from here, never from `app/theme` or `app/widgets`.
 ///
-/// Colours are resolved through [genUiColorResolver], an optional hook the host
-/// sets once at startup to bridge its own theme (so live accent theming is
-/// preserved). When unset, the calm Ethereal defaults are used.
+/// Colours follow the nearest Material [Theme] by default. Hosts that need a
+/// custom mapping can still override resolution through [genUiColorResolver].
 library;
 
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 /// Host-injected bridge from the app's theme to [GenUiColors]. Set once at
 /// startup, e.g. `genUiColorResolver = (c) => GenUiColors(accent: c.colors.accent, …);`.
@@ -52,8 +51,9 @@ class GenUiColors {
   final Color textSecondary;
   final Color textTertiary;
 
-  /// Calm Ethereal "nocturne" defaults, used when no [genUiColorResolver] is set.
-  static const GenUiColors fallback = GenUiColors(
+  /// Calm Ethereal dark preset. Opt into it through [genUiColorResolver] when a
+  /// host wants the original nocturne appearance regardless of its own theme.
+  static const GenUiColors nocturne = GenUiColors(
     accent: Color(0xFF8B93FF),
     accentSoft: Color(0xFF6E76E0),
     accentGlow: Color(0x4D6E76E0),
@@ -69,9 +69,39 @@ class GenUiColors {
     textTertiary: Color(0xFF7C8696),
   );
 
-  /// The colours for [context]: the host bridge if set, else [fallback].
+  /// Backwards-compatible name for the original dark preset.
+  @Deprecated('Use GenUiColors.nocturne instead.')
+  static const GenUiColors fallback = nocturne;
+
+  /// Derives renderer roles from the nearest Material color scheme. The color
+  /// scheme already encodes light/dark brightness, so no separate brightness
+  /// branch is needed here.
+  factory GenUiColors.fromTheme(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return GenUiColors(
+      accent: scheme.primary,
+      accentSoft: scheme.secondary,
+      accentGlow: scheme.primary.withValues(alpha: 0.30),
+      onAccent: scheme.onPrimary,
+      celadon: scheme.tertiary,
+      danger: scheme.error,
+      surface: scheme.surface,
+      surfaceRaised: Color.alphaBlend(
+        scheme.onSurface.withValues(alpha: 0.05),
+        scheme.surface,
+      ),
+      glassBorder: scheme.outline.withValues(alpha: 0.32),
+      hairline: scheme.outline.withValues(alpha: 0.18),
+      textPrimary: scheme.onSurface,
+      textSecondary: scheme.onSurface.withValues(alpha: 0.72),
+      textTertiary: scheme.onSurface.withValues(alpha: 0.56),
+    );
+  }
+
+  /// The colours for [context]: a host override when provided, otherwise roles
+  /// derived from the nearest Material theme.
   static GenUiColors of(BuildContext context) =>
-      genUiColorResolver?.call(context) ?? fallback;
+      genUiColorResolver?.call(context) ?? GenUiColors.fromTheme(context);
 }
 
 /// 4pt spacing scale (mirrors the host scale by value).
@@ -134,8 +164,11 @@ abstract final class GenUiShape {
   }
 }
 
-const SpringDescription _snappy =
-    SpringDescription(mass: 1, stiffness: 520, damping: 30);
+const SpringDescription _snappy = SpringDescription(
+  mass: 1,
+  stiffness: 520,
+  damping: 30,
+);
 
 /// A tap target that responds with a soft spring-driven scale instead of a
 /// Material ripple. Honors the platform reduce-motion setting. Self-contained
@@ -170,10 +203,15 @@ class GenUiPressable extends StatefulWidget {
 
 class _GenUiPressableState extends State<GenUiPressable>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, lowerBound: 0, upperBound: 1, value: 0);
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    lowerBound: 0,
+    upperBound: 1,
+    value: 0,
+  );
 
-  bool get _reduceMotion => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+  bool get _reduceMotion =>
+      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
   void _setPressed(bool pressed) {
     if (_reduceMotion) return;
@@ -206,13 +244,17 @@ class _GenUiPressableState extends State<GenUiPressable>
               if (widget.haptic) HapticFeedback.selectionClick();
               widget.onLongPress!.call();
             },
-      child: AnimatedBuilder(
-        animation: _c,
-        builder: (context, child) => Transform.scale(
-          scale: 1 - (1 - widget.scale) * _c.value,
-          child: child,
+      child: AnimatedOpacity(
+        duration: GenUiMotion.quick,
+        opacity: enabled ? 1 : 0.55,
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, child) => Transform.scale(
+            scale: 1 - (1 - widget.scale) * _c.value,
+            child: child,
+          ),
+          child: widget.child,
         ),
-        child: widget.child,
       ),
     );
 
@@ -226,11 +268,7 @@ class _GenUiPressableState extends State<GenUiPressable>
       );
     }
     return MergeSemantics(
-      child: Semantics(
-        button: true,
-        enabled: enabled,
-        child: gesture,
-      ),
+      child: Semantics(button: true, enabled: enabled, child: gesture),
     );
   }
 }
