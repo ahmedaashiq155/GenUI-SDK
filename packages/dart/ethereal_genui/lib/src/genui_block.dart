@@ -24,12 +24,85 @@ class _GenUiDepth extends InheritedWidget {
   bool updateShouldNotify(_GenUiDepth old) => old.depth != depth;
 }
 
+/// Shares one synchronous message-dispatch lock across a whole rendered spec
+/// tree. Local interactions still use their normal callbacks; only
+/// [GenUiActions.sendMessage] passes through this scope.
+class _GenUiDispatchScope extends InheritedWidget {
+  const _GenUiDispatchScope({required this.actions, required super.child});
+
+  final GenUiActions actions;
+
+  static _GenUiDispatchScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_GenUiDispatchScope>();
+
+  @override
+  bool updateShouldNotify(_GenUiDispatchScope old) =>
+      old.actions.enabled != actions.enabled || old.actions != actions;
+}
+
+class _GenUiDispatchBoundary extends StatefulWidget {
+  const _GenUiDispatchBoundary({required this.spec, required this.actions});
+
+  final Map<String, dynamic> spec;
+  final GenUiActions actions;
+
+  @override
+  State<_GenUiDispatchBoundary> createState() => _GenUiDispatchBoundaryState();
+}
+
+class _GenUiDispatchBoundaryState extends State<_GenUiDispatchBoundary> {
+  bool _dispatched = false;
+
+  @override
+  void didUpdateWidget(_GenUiDispatchBoundary oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.actions.enabled && widget.actions.enabled) {
+      _dispatched = false;
+    }
+  }
+
+  void _sendMessage(String text) {
+    if (!widget.actions.enabled || _dispatched) return;
+    setState(() => _dispatched = true);
+    widget.actions.sendMessage(text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = GenUiActions(
+      sendMessage: _sendMessage,
+      setAccent: widget.actions.setAccent,
+      setShortcuts: widget.actions.setShortcuts,
+      openArtifact: widget.actions.openArtifact,
+      enabled: widget.actions.enabled && !_dispatched,
+    );
+    return _GenUiDispatchScope(
+      actions: actions,
+      child: Builder(
+        builder: (context) => _buildGenUiSpec(context, widget.spec, actions),
+      ),
+    );
+  }
+}
+
 /// Builds the widget for a parsed `ui` spec by looking the type up in the
 /// pluggable [defaultGenUiRegistry]. Top-level so layout containers can render
 /// their children recursively. Unknown types degrade to a calm placeholder,
 /// and nesting past [kGenUiMaxDepth] degrades the same way instead of
 /// overflowing the stack.
 Widget buildGenUiSpec(
+  BuildContext context,
+  Map<String, dynamic> spec,
+  GenUiActions actions,
+) {
+  final dispatchScope = _GenUiDispatchScope.maybeOf(context);
+  if (dispatchScope == null) {
+    return _GenUiDispatchBoundary(spec: spec, actions: actions);
+  }
+  return _buildGenUiSpec(context, spec, dispatchScope.actions);
+}
+
+Widget _buildGenUiSpec(
   BuildContext context,
   Map<String, dynamic> spec,
   GenUiActions actions,
@@ -51,29 +124,47 @@ Widget buildGenUiSpec(
 /// failed to parse/repair) it reads as "Couldn't render this block", danger-
 /// tinted; with a fully-parsed but unsupported [type] it names it, so the
 /// failure is legible rather than silent.
-Widget genUiPlaceholder(BuildContext context, {String? type, bool malformed = false}) {
+Widget genUiPlaceholder(
+  BuildContext context, {
+  String? type,
+  bool malformed = false,
+}) {
   final colors = GenUiColors.of(context);
   final label = malformed
       ? "Couldn't render this block"
       : (type != null && type.isNotEmpty)
-          ? 'Unsupported block: $type'
-          : 'Preparing…';
+      ? 'Unsupported block: $type'
+      : 'Preparing…';
   final iconColor = malformed ? colors.danger : colors.textTertiary;
   return Container(
     margin: const EdgeInsets.symmetric(vertical: GenUiSpace.sm),
-    padding: const EdgeInsets.symmetric(horizontal: GenUiSpace.md, vertical: GenUiSpace.sm),
+    padding: const EdgeInsets.symmetric(
+      horizontal: GenUiSpace.md,
+      vertical: GenUiSpace.sm,
+    ),
     decoration: ShapeDecoration(
       color: colors.surface.withValues(alpha: 0.5),
-      shape: GenUiShape.shape(GenUiRadii.md,
-          side: BorderSide(color: malformed ? colors.danger.withValues(alpha: 0.3) : colors.hairline)),
+      shape: GenUiShape.shape(
+        GenUiRadii.md,
+        side: BorderSide(
+          color: malformed
+              ? colors.danger.withValues(alpha: 0.3)
+              : colors.hairline,
+        ),
+      ),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(malformed ? Icons.error_outline_rounded : Icons.widgets_outlined,
-            size: 15, color: iconColor),
+        Icon(
+          malformed ? Icons.error_outline_rounded : Icons.widgets_outlined,
+          size: 15,
+          color: iconColor,
+        ),
         const SizedBox(width: GenUiSpace.sm),
-        Flexible(child: Text(label, style: TextStyle(color: iconColor, fontSize: 13))),
+        Flexible(
+          child: Text(label, style: TextStyle(color: iconColor, fontSize: 13)),
+        ),
       ],
     ),
   );

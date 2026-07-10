@@ -2,6 +2,7 @@ import React from 'react'
 import { IconRenderer } from './IconRenderer.js'
 import { useOptionalGenUiStore } from '../../provider.js'
 import { safeColor } from './cssSafe.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface ButtonRendererProps {
   spec: Record<string, unknown>
@@ -12,6 +13,7 @@ export interface ButtonRendererProps {
 
 export function ButtonRenderer({ spec, onSend, className, style }: ButtonRendererProps) {
   const store = useOptionalGenUiStore()
+  const sendEnabled = useGenUiInteractionEnabled()
 
   const explicitSend = String(spec.send ?? '')
   const set = spec.set as Record<string, unknown> | null | undefined
@@ -20,6 +22,7 @@ export function ButtonRenderer({ spec, onSend, className, style }: ButtonRendere
     ? explicitSend
     : (hasSet ? '' : String(spec.label ?? ''))
   const hasAction = sendMsg.length > 0 || hasSet
+  const actionEnabled = hasAction && (sendMsg.length === 0 || sendEnabled)
 
   const tint = safeColor(spec.color) ?? 'var(--ethereal-accent)'
   const variant = spec.style as string | undefined
@@ -65,6 +68,7 @@ export function ButtonRenderer({ spec, onSend, className, style }: ButtonRendere
       <button
         className={className}
         onClick={handleClick}
+        disabled={!actionEnabled}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -76,8 +80,8 @@ export function ButtonRenderer({ spec, onSend, className, style }: ButtonRendere
           border: borderStyle ?? 'none',
           fontWeight: 600,
           fontSize: 14,
-          cursor: hasAction ? 'pointer' : 'default',
-          opacity: hasAction ? 1 : 0.5,
+          cursor: actionEnabled ? 'pointer' : 'default',
+          opacity: actionEnabled ? 1 : 0.5,
           outline: 'none',
           ...style,
         }}

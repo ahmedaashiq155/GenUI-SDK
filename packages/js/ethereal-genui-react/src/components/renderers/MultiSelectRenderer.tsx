@@ -1,6 +1,7 @@
 import React from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
 import { usePersistedState } from '../../provider.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface MultiSelectRendererProps {
   spec: Record<string, unknown>
@@ -10,6 +11,7 @@ export interface MultiSelectRendererProps {
 }
 
 export function MultiSelectRenderer({ spec, onSend, className, style }: MultiSelectRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const options = genUiOptions(spec.options)
   const title = spec.title as string | undefined
   const submitLabel = String(spec.submitLabel ?? 'Submit')
@@ -65,11 +67,13 @@ export function MultiSelectRenderer({ spec, onSend, className, style }: MultiSel
             <button
               key={opt.value}
               onClick={() => toggle(opt.value)}
+              disabled={!enabled}
               style={{
                 padding: '6px calc(var(--ethereal-space-md) + 2px)',
                 borderRadius: 'var(--ethereal-radius-pill)',
                 border: 'none',
-                cursor: 'pointer',
+                cursor: enabled ? 'pointer' : 'not-allowed',
+                opacity: enabled ? 1 : 0.55,
                 fontWeight: 500,
                 fontSize: '0.875rem',
                 backgroundColor: isSel
@@ -92,12 +96,12 @@ export function MultiSelectRenderer({ spec, onSend, className, style }: MultiSel
       </div>
       <button
         onClick={handleSubmit}
-        disabled={selected.length === 0}
+        disabled={!enabled || selected.length === 0}
         style={{
           padding: '8px var(--ethereal-space-lg)',
           borderRadius: 'var(--ethereal-radius-pill)',
           border: 'none',
-          cursor: selected.length > 0 ? 'pointer' : 'not-allowed',
+          cursor: enabled && selected.length > 0 ? 'pointer' : 'not-allowed',
           fontWeight: 500,
           fontSize: '0.875rem',
           backgroundColor: selected.length > 0
@@ -105,7 +109,7 @@ export function MultiSelectRenderer({ spec, onSend, className, style }: MultiSel
             : 'color-mix(in srgb, var(--ethereal-accent) 20%, transparent)',
           color: selected.length > 0 ? 'var(--ethereal-on-accent)' : 'var(--ethereal-text-tertiary)',
           alignSelf: 'flex-start',
-          opacity: selected.length > 0 ? 1 : 0.5,
+          opacity: enabled && selected.length > 0 ? 1 : 0.5,
           transition: 'opacity 0.1s ease',
           marginTop: 'var(--ethereal-space-sm)',
         }}

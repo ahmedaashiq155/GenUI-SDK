@@ -1,5 +1,6 @@
 import React, { useId } from 'react'
 import { usePersistedState } from '../../provider.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface SliderRendererProps {
   spec: Record<string, unknown>
@@ -18,6 +19,7 @@ function toNum(v: unknown, fallback: number): number {
 }
 
 export function SliderRenderer({ spec, onSend, className, style }: SliderRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const label = spec.label as string | undefined ?? spec.title as string | undefined
   const submitLabel = String(spec.submitLabel ?? 'Submit')
   const id = spec.id as string | undefined
@@ -74,6 +76,7 @@ export function SliderRenderer({ spec, onSend, className, style }: SliderRendere
         max={max}
         step={step}
         value={value}
+        disabled={!enabled}
         onChange={(e) => setValue(parseFloat(e.target.value))}
         style={{
           width: '100%',
@@ -82,11 +85,13 @@ export function SliderRenderer({ spec, onSend, className, style }: SliderRendere
       />
       <button
         onClick={() => onSend(`${display}${unit}`)}
+        disabled={!enabled}
         style={{
           padding: '8px var(--ethereal-space-lg)',
           borderRadius: 'var(--ethereal-radius-pill)',
           border: 'none',
-          cursor: 'pointer',
+          cursor: enabled ? 'pointer' : 'not-allowed',
+          opacity: enabled ? 1 : 0.55,
           fontWeight: 500,
           fontSize: '0.875rem',
           backgroundColor: 'var(--ethereal-accent)',

@@ -2,6 +2,7 @@ import React from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
 import { usePersistedState } from '../../provider.js'
 import { Pressable } from '../Pressable.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface ChecklistRendererProps {
   spec: Record<string, unknown>
@@ -11,6 +12,7 @@ export interface ChecklistRendererProps {
 }
 
 export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const options = genUiOptions(spec.items ?? spec.options)
   const title = spec.title as string | undefined
   const submitLabel = String(spec.submitLabel ?? 'Done')
@@ -72,6 +74,7 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
             role="checkbox"
             aria-checked={isChecked}
             onPress={() => toggle(i)}
+            disabled={!enabled}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -99,12 +102,12 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
       })}
       <button
         onClick={handleSubmit}
-        disabled={checkedIndices.length === 0}
+        disabled={!enabled || checkedIndices.length === 0}
         style={{
           padding: '8px var(--ethereal-space-lg)',
           borderRadius: 'var(--ethereal-radius-pill)',
           border: 'none',
-          cursor: checkedIndices.length > 0 ? 'pointer' : 'not-allowed',
+          cursor: enabled && checkedIndices.length > 0 ? 'pointer' : 'not-allowed',
           fontWeight: 500,
           fontSize: '0.875rem',
           backgroundColor: checkedIndices.length > 0
@@ -112,7 +115,7 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
             : 'color-mix(in srgb, var(--ethereal-accent) 20%, transparent)',
           color: checkedIndices.length > 0 ? 'var(--ethereal-on-accent)' : 'var(--ethereal-text-tertiary)',
           alignSelf: 'flex-start',
-          opacity: checkedIndices.length > 0 ? 1 : 0.5,
+          opacity: enabled && checkedIndices.length > 0 ? 1 : 0.5,
           marginTop: 'var(--ethereal-space-sm)',
           transition: 'opacity 0.1s ease',
         }}

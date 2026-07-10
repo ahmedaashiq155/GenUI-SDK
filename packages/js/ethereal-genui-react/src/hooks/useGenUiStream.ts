@@ -29,7 +29,7 @@ export interface UseGenUiStreamResult {
  * segments.map((seg, i) => {
  *   switch (seg.kind) {
  *     case 'text': return <Markdown key={i}>{seg.markdown}</Markdown>
- *     case 'ui-ready': return <GenUiBlock key={i} spec={seg.spec} onSend={onSend} />
+ *     case 'ui-ready': return <GenUiBlock key={i} spec={seg.spec} onSend={onSend} enabled={!isStreaming} />
  *     case 'ui-preparing': return <GenUiPlaceholder key={i} />
  *     case 'ui-error': return <GenUiBlockError key={i} />
  *     // ...

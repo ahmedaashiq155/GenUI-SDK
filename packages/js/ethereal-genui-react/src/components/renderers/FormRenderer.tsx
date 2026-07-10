@@ -1,6 +1,7 @@
 import React, { useId } from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
 import { usePersistedState } from '../../provider.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface FormRendererProps {
   spec: Record<string, unknown>
@@ -10,6 +11,7 @@ export interface FormRendererProps {
 }
 
 export function FormRenderer({ spec, onSend, className, style }: FormRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const title = spec.title as string | undefined
   const submitLabel = String(spec.submitLabel ?? 'Submit')
   const id = spec.id as string | undefined
@@ -96,6 +98,7 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
                 id={fieldId}
                 type="checkbox"
                 checked={boolVal}
+                disabled={!enabled}
                 onChange={(e) => setField(key, e.target.checked)}
                 style={{ accentColor: 'var(--ethereal-accent)', width: '1.25rem', height: '1.25rem', cursor: 'pointer' }}
               />
@@ -117,11 +120,13 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
                       aria-pressed={isSel}
                       className="ethereal-pressable"
                       onClick={() => setField(key, opt.value)}
+                      disabled={!enabled}
                       style={{
                         padding: '5px calc(var(--ethereal-space-md) + 2px)',
                         borderRadius: 'var(--ethereal-radius-pill)',
                         border: 'none',
-                        cursor: 'pointer',
+                        cursor: enabled ? 'pointer' : 'not-allowed',
+                        opacity: enabled ? 1 : 0.55,
                         fontWeight: 500,
                         fontSize: '0.8125rem',
                         backgroundColor: isSel
@@ -148,6 +153,7 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
               id={fieldId}
               type={fieldType === 'number' ? 'number' : 'text'}
               value={String(values[key] ?? '')}
+              disabled={!enabled}
               placeholder={String(f.placeholder ?? '')}
               onChange={(e) => setField(key, e.target.value)}
               style={inputStyle}
@@ -157,11 +163,13 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
       })}
       <button
         onClick={handleSubmit}
+        disabled={!enabled}
         style={{
           padding: '8px var(--ethereal-space-lg)',
           borderRadius: 'var(--ethereal-radius-pill)',
           border: 'none',
-          cursor: 'pointer',
+          cursor: enabled ? 'pointer' : 'not-allowed',
+          opacity: enabled ? 1 : 0.55,
           fontWeight: 500,
           fontSize: '0.875rem',
           backgroundColor: 'var(--ethereal-accent)',

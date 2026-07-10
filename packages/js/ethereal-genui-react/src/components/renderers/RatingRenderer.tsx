@@ -1,5 +1,6 @@
 import React from 'react'
 import { usePersistedState } from '../../provider.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface RatingRendererProps {
   spec: Record<string, unknown>
@@ -18,6 +19,7 @@ function toInt(v: unknown, fallback: number): number {
 }
 
 export function RatingRenderer({ spec, onSend, className, style }: RatingRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const label = spec.label as string | undefined ?? spec.title as string | undefined
   const max = toInt(spec.max, 5)
   const id = spec.id as string | undefined
@@ -67,10 +69,12 @@ export function RatingRenderer({ spec, onSend, className, style }: RatingRendere
               aria-label={`Rate ${starNum} out of ${max}`}
               aria-pressed={filled}
               className="ethereal-pressable"
+              disabled={!enabled}
               style={{
                 background: 'none',
                 border: 'none',
-                cursor: 'pointer',
+                cursor: enabled ? 'pointer' : 'not-allowed',
+                opacity: enabled ? 1 : 0.55,
                 padding: '2px',
                 color: 'var(--ethereal-accent)',
                 fontSize: '1.75rem',

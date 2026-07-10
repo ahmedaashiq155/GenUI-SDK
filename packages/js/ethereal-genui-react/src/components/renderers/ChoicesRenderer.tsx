@@ -1,5 +1,6 @@
 import React from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface ChoicesRendererProps {
   spec: Record<string, unknown>
@@ -9,6 +10,7 @@ export interface ChoicesRendererProps {
 }
 
 export function ChoicesRenderer({ spec, onSend, className, style }: ChoicesRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const options = genUiOptions(spec.options)
   const title = spec.title as string | undefined
 
@@ -44,11 +46,13 @@ export function ChoicesRenderer({ spec, onSend, className, style }: ChoicesRende
           <button
             key={opt.value}
             onClick={() => onSend(opt.value)}
+            disabled={!enabled}
             style={{
               padding: '6px calc(var(--ethereal-space-md) + 2px)',
               borderRadius: 'var(--ethereal-radius-pill)',
               border: 'none',
-              cursor: 'pointer',
+              cursor: enabled ? 'pointer' : 'not-allowed',
+              opacity: enabled ? 1 : 0.55,
               fontWeight: 500,
               fontSize: '0.875rem',
               backgroundColor: 'color-mix(in srgb, var(--ethereal-accent) 10%, transparent)',

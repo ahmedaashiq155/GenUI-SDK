@@ -1,5 +1,6 @@
 import React from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface SuggestionsRendererProps {
   spec: Record<string, unknown>
@@ -9,6 +10,7 @@ export interface SuggestionsRendererProps {
 }
 
 export function SuggestionsRenderer({ spec, onSend, className, style }: SuggestionsRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const options = genUiOptions(spec.options ?? spec.suggestions ?? spec.prompts)
   if (options.length === 0) return null
 
@@ -27,11 +29,13 @@ export function SuggestionsRenderer({ spec, onSend, className, style }: Suggesti
         <button
           key={opt.value}
           onClick={() => onSend(opt.value)}
+          disabled={!enabled}
           style={{
             padding: '4px var(--ethereal-space-md)',
             borderRadius: 'var(--ethereal-radius-pill)',
             border: '1px solid color-mix(in srgb, var(--ethereal-accent) 20%, transparent)',
-            cursor: 'pointer',
+            cursor: enabled ? 'pointer' : 'not-allowed',
+            opacity: enabled ? 1 : 0.55,
             fontWeight: 400,
             fontSize: '0.8125rem',
             backgroundColor: 'color-mix(in srgb, var(--ethereal-accent) 6%, transparent)',

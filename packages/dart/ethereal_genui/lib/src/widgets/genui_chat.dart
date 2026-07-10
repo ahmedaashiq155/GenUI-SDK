@@ -48,7 +48,7 @@ class _GenUiChatState extends State<GenUiChat> {
   bool _sending = false;
 
   Future<void> _send(String text) async {
-    if (text.trim().isEmpty) return;
+    if (_sending || text.trim().isEmpty) return;
     _controller.clear();
     setState(() {
       _sending = true;
@@ -60,15 +60,16 @@ class _GenUiChatState extends State<GenUiChat> {
     // The stream can outlive this State (user navigates away mid-response) —
     // guard every setState after an await, or the next chunk throws
     // "setState() called after dispose()".
-    await for (final segs in widget.connection.sendMessage(text)) {
-      if (!mounted) return;
-      setState(() {
-        _turns.last = _ChatTurn(userText: text, segments: segs);
-      });
+    try {
+      await for (final segs in widget.connection.sendMessage(text)) {
+        if (!mounted) return;
+        setState(() {
+          _turns.last = _ChatTurn(userText: text, segments: segs);
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
     }
-
-    if (!mounted) return;
-    setState(() => _sending = false);
   }
 
   @override
@@ -80,7 +81,7 @@ class _GenUiChatState extends State<GenUiChat> {
   @override
   Widget build(BuildContext context) {
     // GenUiActions wires interactive UI controls back into the conversation.
-    final actions = GenUiActions(sendMessage: _send);
+    final actions = GenUiActions(sendMessage: _send, enabled: !_sending);
 
     return Column(
       children: [
@@ -106,7 +107,11 @@ class _GenUiChatState extends State<GenUiChat> {
                         child: Text(seg.markdown),
                       )
                     else if (seg is UiSegment)
-                      GenUiBlock(raw: seg.json, actions: actions, closed: seg.closed),
+                      GenUiBlock(
+                        raw: seg.json,
+                        actions: actions,
+                        closed: seg.closed,
+                      ),
                 ],
               );
             },
@@ -119,7 +124,8 @@ class _GenUiChatState extends State<GenUiChat> {
               Expanded(
                 child: TextField(
                   controller: _controller,
-                  decoration: widget.inputDecoration ??
+                  decoration:
+                      widget.inputDecoration ??
                       const InputDecoration(hintText: 'Message...'),
                   onSubmitted: _sending ? null : _send,
                 ),

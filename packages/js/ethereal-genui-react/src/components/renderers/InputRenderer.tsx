@@ -1,4 +1,5 @@
 import React, { useId, useState } from 'react'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface InputRendererProps {
   spec: Record<string, unknown>
@@ -8,6 +9,7 @@ export interface InputRendererProps {
 }
 
 export function InputRenderer({ spec, onSend, className, style }: InputRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const label = spec.label as string | undefined ?? spec.title as string | undefined
   const placeholder = String(spec.placeholder ?? 'Type your answer')
   const submitLabel = String(spec.submitLabel ?? 'Send')
@@ -53,6 +55,7 @@ export function InputRenderer({ spec, onSend, className, style }: InputRendererP
         aria-label={label ? undefined : placeholder}
         rows={1}
         value={text}
+        disabled={!enabled}
         onChange={(e) => setText(e.target.value)}
         placeholder={placeholder}
         style={{
@@ -73,12 +76,12 @@ export function InputRenderer({ spec, onSend, className, style }: InputRendererP
       />
       <button
         onClick={handleSubmit}
-        disabled={!text.trim()}
+        disabled={!enabled || !text.trim()}
         style={{
           padding: '8px var(--ethereal-space-lg)',
           borderRadius: 'var(--ethereal-radius-pill)',
           border: 'none',
-          cursor: text.trim() ? 'pointer' : 'not-allowed',
+          cursor: enabled && text.trim() ? 'pointer' : 'not-allowed',
           fontWeight: 500,
           fontSize: '0.875rem',
           backgroundColor: text.trim()
@@ -87,7 +90,7 @@ export function InputRenderer({ spec, onSend, className, style }: InputRendererP
           color: text.trim() ? 'var(--ethereal-on-accent)' : 'var(--ethereal-text-tertiary)',
           alignSelf: 'flex-start',
           transition: 'opacity 0.1s ease',
-          opacity: text.trim() ? 1 : 0.5,
+          opacity: enabled && text.trim() ? 1 : 0.5,
         }}
       >
         {submitLabel}

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface ConfirmRendererProps {
   spec: Record<string, unknown>
@@ -8,6 +9,7 @@ export interface ConfirmRendererProps {
 }
 
 export function ConfirmRenderer({ spec, onSend, className, style }: ConfirmRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const prompt = String(spec.prompt ?? spec.title ?? 'Confirm?')
   const confirmLabel = String(spec.confirmLabel ?? 'Yes')
   const cancelLabel = String(spec.cancelLabel ?? 'No')
@@ -16,7 +18,8 @@ export function ConfirmRenderer({ spec, onSend, className, style }: ConfirmRende
     padding: '6px calc(var(--ethereal-space-md) + 2px)',
     borderRadius: 'var(--ethereal-radius-pill)',
     border: 'none',
-    cursor: 'pointer',
+    cursor: enabled ? 'pointer' : 'not-allowed',
+    opacity: enabled ? 1 : 0.55,
     fontWeight: 500,
     fontSize: '0.875rem',
     transition: 'opacity 0.1s ease',
@@ -47,6 +50,7 @@ export function ConfirmRenderer({ spec, onSend, className, style }: ConfirmRende
       <div style={{ display: 'flex', gap: 'var(--ethereal-space-sm)' }}>
         <button
           onClick={() => onSend(confirmLabel)}
+          disabled={!enabled}
           style={{
             ...pillBase,
             backgroundColor: 'var(--ethereal-accent)',
@@ -59,6 +63,7 @@ export function ConfirmRenderer({ spec, onSend, className, style }: ConfirmRende
         </button>
         <button
           onClick={() => onSend(cancelLabel)}
+          disabled={!enabled}
           style={{
             ...pillBase,
             backgroundColor: 'color-mix(in srgb, var(--ethereal-accent) 10%, transparent)',

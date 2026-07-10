@@ -2,6 +2,7 @@ import React from 'react'
 import { GenUiBlock } from '../GenUiBlock.js'
 import { useOptionalGenUiStore } from '../../provider.js'
 import { safeColor } from './cssSafe.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface BoxRendererProps {
   spec: Record<string, unknown>
@@ -12,12 +13,14 @@ export interface BoxRendererProps {
 
 export function BoxRenderer({ spec, onSend, className, style }: BoxRendererProps) {
   const store = useOptionalGenUiStore()
+  const sendEnabled = useGenUiInteractionEnabled()
 
   // Click handling
   const set = spec.set as Record<string, unknown> | null | undefined
   const hasSet = Boolean(set && typeof set === 'object' && Object.keys(set as object).length > 0)
   const sendMsg = typeof spec.send === 'string' ? spec.send : ''
   const hasAction = sendMsg.length > 0 || hasSet
+  const actionEnabled = hasAction && (sendMsg.length === 0 || sendEnabled)
 
   function handleClick() {
     if (!hasAction) return
@@ -74,7 +77,8 @@ export function BoxRenderer({ spec, onSend, className, style }: BoxRendererProps
     <div style={{ padding: '3px 0' }}>
       <div
         className={className}
-        onClick={hasAction ? handleClick : undefined}
+        onClick={actionEnabled ? handleClick : undefined}
+        aria-disabled={hasAction && !actionEnabled ? true : undefined}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -85,7 +89,8 @@ export function BoxRenderer({ spec, onSend, className, style }: BoxRendererProps
           background,
           width:  width  ? `${width}px`  : undefined,
           height: height ? `${height}px` : undefined,
-          cursor: hasAction ? 'pointer' : undefined,
+          cursor: actionEnabled ? 'pointer' : undefined,
+          opacity: hasAction && !actionEnabled ? 0.55 : undefined,
           ...style,
         }}
       >

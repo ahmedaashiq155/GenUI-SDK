@@ -1,6 +1,7 @@
 import React from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
 import { usePersistedState } from '../../provider.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface SegmentedRendererProps {
   spec: Record<string, unknown>
@@ -10,6 +11,7 @@ export interface SegmentedRendererProps {
 }
 
 export function SegmentedRenderer({ spec, onSend, className, style }: SegmentedRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const options = genUiOptions(spec.options)
   const title = spec.title as string | undefined
   const id = spec.id as string | undefined
@@ -68,12 +70,14 @@ export function SegmentedRenderer({ spec, onSend, className, style }: SegmentedR
               aria-checked={isSelected}
               className="ethereal-pressable"
               onClick={() => handleClick(i)}
+              disabled={!enabled}
               style={{
                 flex: 1,
                 padding: 'calc(var(--ethereal-space-sm) + 2px) var(--ethereal-space-sm)',
                 borderRadius: 'calc(var(--ethereal-radius-md) - 2px)',
                 border: 'none',
-                cursor: 'pointer',
+                cursor: enabled ? 'pointer' : 'not-allowed',
+                opacity: enabled ? 1 : 0.55,
                 fontWeight: 600,
                 fontSize: '0.8125rem',
                 textAlign: 'center',

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useOptionalGenUiActions } from '../../provider.js'
 import { Pressable } from '../Pressable.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface ShortcutsDirectiveRendererProps {
   spec: Record<string, unknown>
@@ -18,6 +19,7 @@ export interface ShortcutsDirectiveRendererProps {
  * give an injected prompt a durable, cross-session foothold.
  */
 export function ShortcutsDirectiveRenderer({ spec, onSend, className, style }: ShortcutsDirectiveRendererProps) {
+  const sendEnabled = useGenUiInteractionEnabled()
   const actions = useOptionalGenUiActions()
   const rawItems = Array.isArray(spec.items) ? spec.items as unknown[] : []
   const items = rawItems
@@ -84,6 +86,7 @@ export function ShortcutsDirectiveRenderer({ spec, onSend, className, style }: S
           <button
             key={i}
             onClick={() => onSend?.(s)}
+            disabled={!sendEnabled}
             className="ethereal-pressable"
             style={{
               padding: '4px 12px',
@@ -92,7 +95,8 @@ export function ShortcutsDirectiveRenderer({ spec, onSend, className, style }: S
               color: 'var(--ethereal-accent)',
               border: 'none',
               fontSize: '0.875rem',
-              cursor: 'pointer',
+              cursor: sendEnabled ? 'pointer' : 'not-allowed',
+              opacity: sendEnabled ? 1 : 0.55,
             }}
           >
             {s}

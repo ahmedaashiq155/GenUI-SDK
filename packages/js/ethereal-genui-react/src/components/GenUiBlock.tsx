@@ -1,6 +1,11 @@
 import React, { createContext, useContext } from 'react'
+import { useOptionalGenUiActions } from '../provider.js'
 import { GenUiPlaceholder } from './GenUiPlaceholder.js'
 import { GenUiErrorBoundary } from './GenUiErrorBoundary.js'
+import {
+  GenUiInteractionBoundary,
+  useOptionalGenUiInteraction,
+} from './GenUiInteraction.js'
 import { TextRenderer } from './renderers/TextRenderer.js'
 import { IconRenderer } from './renderers/IconRenderer.js'
 import { SpacerRenderer } from './renderers/SpacerRenderer.js'
@@ -49,6 +54,8 @@ import { WhenRenderer } from './renderers/WhenRenderer.js'
 export interface GenUiBlockProps {
   spec: Record<string, unknown>
   onSend: (message: string) => void
+  /** External turn availability. Also combines with GenUiProvider.actions.enabled. */
+  enabled?: boolean
   className?: string
   style?: React.CSSProperties
 }
@@ -62,18 +69,36 @@ export interface GenUiBlockProps {
 const MAX_DEPTH = 24
 const DepthContext = createContext(0)
 
-export function GenUiBlock({ spec, onSend, className, style }: GenUiBlockProps) {
+export function GenUiBlock({ spec, onSend, enabled = true, className, style }: GenUiBlockProps) {
   const depth = useContext(DepthContext)
+  const existingInteraction = useOptionalGenUiInteraction()
+  const providerActions = useOptionalGenUiActions()
   if (depth >= MAX_DEPTH) {
     return <GenUiPlaceholder type="too-deep" className={className} style={style} />
   }
-  return (
+
+  const content = (
     <GenUiErrorBoundary resetKey={spec} className={className} style={style}>
       <DepthContext.Provider value={depth + 1}>
-        <GenUiBlockInner spec={spec} onSend={onSend} className={className} style={style} />
+        <GenUiBlockContent spec={spec} className={className} style={style} />
       </DepthContext.Provider>
     </GenUiErrorBoundary>
   )
+
+  if (existingInteraction) return content
+
+  const externallyEnabled = enabled && (providerActions?.enabled ?? true)
+  return (
+    <GenUiInteractionBoundary enabled={externallyEnabled} onSend={onSend}>
+      {content}
+    </GenUiInteractionBoundary>
+  )
+}
+
+function GenUiBlockContent({ spec, className, style }: Omit<GenUiBlockProps, 'onSend'>) {
+  const interaction = useOptionalGenUiInteraction()
+  // GenUiBlock always establishes or inherits this context.
+  return <GenUiBlockInner spec={spec} onSend={interaction!.dispatch} className={className} style={style} />
 }
 
 function GenUiBlockInner({ spec, onSend, className, style }: GenUiBlockProps) {

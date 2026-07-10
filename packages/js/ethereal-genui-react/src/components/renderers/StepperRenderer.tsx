@@ -1,5 +1,6 @@
 import React from 'react'
 import { usePersistedState } from '../../provider.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface StepperRendererProps {
   spec: Record<string, unknown>
@@ -18,6 +19,7 @@ function toInt(v: unknown, fallback: number): number {
 }
 
 export function StepperRenderer({ spec, onSend, className, style }: StepperRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const label = String(spec.label ?? spec.title ?? '')
   const unit = String(spec.unit ?? '')
   const id = spec.id as string | undefined
@@ -73,8 +75,8 @@ export function StepperRenderer({ spec, onSend, className, style }: StepperRende
       )}
       <button
         onClick={() => value > min && setValue(value - step)}
-        disabled={value <= min}
-        style={btnStyle(value <= min)}
+        disabled={!enabled || value <= min}
+        style={btnStyle(!enabled || value <= min)}
       >
         −
       </button>
@@ -89,17 +91,19 @@ export function StepperRenderer({ spec, onSend, className, style }: StepperRende
       </span>
       <button
         onClick={() => value < max && setValue(value + step)}
-        disabled={value >= max}
-        style={btnStyle(value >= max)}
+        disabled={!enabled || value >= max}
+        style={btnStyle(!enabled || value >= max)}
       >
         +
       </button>
       <button
         onClick={() => onSend(label ? `${label}: ${value}${unit}` : `${value}${unit}`)}
+        disabled={!enabled}
         style={{
           background: 'none',
           border: 'none',
-          cursor: 'pointer',
+          cursor: enabled ? 'pointer' : 'not-allowed',
+          opacity: enabled ? 1 : 0.55,
           color: 'var(--ethereal-accent)',
           fontSize: '1.25rem',
           padding: '4px',

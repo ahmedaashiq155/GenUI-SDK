@@ -179,6 +179,78 @@ void main() {
     expect(sent, isNull);
   });
 
+  testWidgets('a rendered spec synchronously rejects duplicate sends',
+      (tester) async {
+    final sent = <String>[];
+    await tester.pumpWidget(_host(Builder(
+      builder: (c) => buildGenUiSpec(
+        c,
+        {'type': 'choices', 'options': ['Yes', 'No']},
+        actions(onSend: sent.add),
+      ),
+    )));
+
+    await tester.tap(find.text('Yes'));
+    await tester.tap(find.text('No'));
+    await tester.pump();
+    expect(sent, ['Yes']);
+  });
+
+  testWidgets('nested send controls share the root dispatch lock',
+      (tester) async {
+    final sent = <String>[];
+    await tester.pumpWidget(_host(Builder(
+      builder: (c) => buildGenUiSpec(
+        c,
+        {
+          'type': 'column',
+          'children': [
+            {'type': 'choices', 'options': ['First']},
+            {'type': 'choices', 'options': ['Second']},
+          ],
+        },
+        actions(onSend: sent.add),
+      ),
+    )));
+
+    await tester.tap(find.text('First'));
+    await tester.tap(find.text('Second'));
+    await tester.pump();
+    expect(sent, ['First']);
+  });
+
+  testWidgets('dispatch lock resets after enabled changes false then true',
+      (tester) async {
+    final sent = <String>[];
+    Widget subject(bool enabled) => _host(Builder(
+          builder: (c) => buildGenUiSpec(
+            c,
+            {'type': 'choices', 'options': ['Again']},
+            actions(onSend: sent.add, enabled: enabled),
+          ),
+        ));
+
+    await tester.pumpWidget(subject(true));
+    await tester.tap(find.text('Again'));
+    await tester.pump();
+    expect(sent, ['Again']);
+
+    await tester.pumpWidget(subject(false));
+    await tester.pumpWidget(subject(true));
+    await tester.tap(find.text('Again'));
+    await tester.pump();
+    expect(sent, ['Again', 'Again']);
+  });
+
+  testWidgets('disabled pressables expose a subdued pending affordance',
+      (tester) async {
+    await tester.pumpWidget(_host(const GenUiPressable(
+      child: Text('Pending'),
+    )));
+    final opacity = tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity));
+    expect(opacity.opacity, 0.55);
+  });
+
   testWidgets('checklist restores persisted state from GenUiStateScope',
       (tester) async {
     await tester.pumpWidget(_host(GenUiStateScope(

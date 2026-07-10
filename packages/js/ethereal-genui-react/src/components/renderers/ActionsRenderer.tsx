@@ -1,4 +1,5 @@
 import React from 'react'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface ActionsRendererProps {
   spec: Record<string, unknown>
@@ -8,6 +9,7 @@ export interface ActionsRendererProps {
 }
 
 export function ActionsRenderer({ spec, onSend, className, style }: ActionsRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const title = spec.title as string | undefined
   const actions = (Array.isArray(spec.actions) ? spec.actions : []) as Array<Record<string, unknown>>
 
@@ -47,11 +49,13 @@ export function ActionsRenderer({ spec, onSend, className, style }: ActionsRende
             <button
               key={idx}
               onClick={() => onSend(send)}
+              disabled={!enabled}
               style={{
                 padding: '6px calc(var(--ethereal-space-md) + 2px)',
                 borderRadius: 'var(--ethereal-radius-pill)',
                 border: 'none',
-                cursor: 'pointer',
+                cursor: enabled ? 'pointer' : 'not-allowed',
+                opacity: enabled ? 1 : 0.55,
                 fontWeight: 500,
                 fontSize: '0.875rem',
                 backgroundColor: primary

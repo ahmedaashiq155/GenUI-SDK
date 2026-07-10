@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { usePersistedState } from '../../provider.js'
 import { Pressable } from '../Pressable.js'
+import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
 export interface PollRendererProps {
   spec: Record<string, unknown>
@@ -10,6 +11,7 @@ export interface PollRendererProps {
 }
 
 export function PollRenderer({ spec, onSend, className, style }: PollRendererProps) {
+  const enabled = useGenUiInteractionEnabled()
   const title = spec.title as string | undefined
   const id = spec.id as string | undefined
 
@@ -80,7 +82,7 @@ export function PollRenderer({ spec, onSend, className, style }: PollRendererPro
           <Pressable
             key={i}
             onPress={() => handleVote(i)}
-            disabled={votedIndex >= 0}
+            disabled={!enabled || votedIndex >= 0}
             aria-pressed={isVoted}
             style={{
               position: 'relative',
