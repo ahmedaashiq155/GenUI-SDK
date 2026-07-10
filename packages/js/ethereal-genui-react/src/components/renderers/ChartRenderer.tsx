@@ -22,7 +22,13 @@ export function chartSemanticLabel(
   title: string | undefined,
   data: DataPoint[],
 ): string {
-  const kind = variant === 'pie' ? 'Pie chart' : variant === 'line' ? 'Line chart' : 'Bar chart'
+  const kind = variant === 'pie'
+    ? 'Pie chart'
+    : variant === 'line'
+      ? 'Line chart'
+      : variant === 'area'
+        ? 'Area chart'
+        : 'Bar chart'
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1))
   const points = data.map(d => `${d.label} ${fmt(d.value)}`).join(', ')
   const titlePart = title ? `${title}. ` : ''
@@ -97,7 +103,7 @@ function BarChart({ data }: { data: DataPoint[] }) {
   )
 }
 
-function LineChart({ data }: { data: DataPoint[] }) {
+function LineChart({ data, area }: { data: DataPoint[]; area: boolean }) {
   const leftMargin  = 20
   const rightMargin = 10
   const topMargin   = 10
@@ -124,10 +130,12 @@ function LineChart({ data }: { data: DataPoint[] }) {
 
   return (
     <svg viewBox="0 0 300 160" width="100%" height="200">
-      <polygon
-        points={polygonPts}
-        style={{ fill: 'var(--ethereal-accent)', opacity: 0.12 }}
-      />
+      {area ? (
+        <polygon
+          points={polygonPts}
+          style={{ fill: 'var(--ethereal-accent)', opacity: 0.12 }}
+        />
+      ) : null}
       <polyline
         points={pointsStr}
         style={{ stroke: 'var(--ethereal-accent)', strokeWidth: 2.5, fill: 'none' }}
@@ -253,8 +261,8 @@ export function ChartRenderer({ spec, className, style }: ChartRendererProps) {
       )}
       <div role="img" aria-label={chartSemanticLabel(chartType, title, data)}>
         <div aria-hidden="true">
-          {chartType === 'line' ? (
-            <LineChart data={data} />
+          {chartType === 'line' || chartType === 'area' ? (
+            <LineChart data={data} area={chartType === 'area'} />
           ) : chartType === 'pie' ? (
             <PieChart data={data} />
           ) : (

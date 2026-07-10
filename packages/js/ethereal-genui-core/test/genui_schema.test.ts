@@ -38,6 +38,15 @@ describe('validateGenUiSpec', () => {
     expect(result.isValid).toBe(false)
     expect(result.issues[0].message).toContain('missing "type"')
   })
+  it('validates a nested block in when.child', () => {
+    const result = validateGenUiSpec({
+      type: 'when',
+      key: 'view',
+      child: { type: 'totally-bogus' },
+    })
+    expect(result.hasUnknownType).toBe(true)
+    expect(result.issues[0].path).toBe('$.child')
+  })
   it('non-object is valid (not a block)', () => {
     expect(validateGenUiSpec('hello').isValid).toBe(true)
     expect(validateGenUiSpec(null).isValid).toBe(true)

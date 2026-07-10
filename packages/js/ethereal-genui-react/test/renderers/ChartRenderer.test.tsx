@@ -60,6 +60,25 @@ describe('ChartRenderer', () => {
     )
     expect(container.querySelector('svg')).not.toBeNull()
     expect(container.querySelector('polyline')).not.toBeNull()
+    expect(container.querySelector('polygon')).toBeNull()
+  })
+
+  it('renders a filled area chart with area semantics', () => {
+    const { container } = render(
+      <ChartRenderer
+        spec={{
+          type: 'chart',
+          chart: 'area',
+          title: 'Traffic',
+          data: [{ label: 'Mon', value: 3 }, { label: 'Tue', value: 7 }],
+        }}
+        onSend={vi.fn()}
+      />
+    )
+    expect(container.querySelector('polyline')).not.toBeNull()
+    expect(container.querySelector('polygon')).not.toBeNull()
+    expect(container.querySelector('[role="img"]')?.getAttribute('aria-label'))
+      .toBe('Traffic. Area chart: Mon 3, Tue 7')
   })
 
   it('renders title when provided', () => {

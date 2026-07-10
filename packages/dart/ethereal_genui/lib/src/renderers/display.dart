@@ -367,7 +367,7 @@ class GalleryRenderer extends StatelessWidget {
     final colors = GenUiColors.of(context);
     final urls = (spec['images'] is List ? spec['images'] as List<dynamic> : const [])
         .map((e) => e.toString())
-        .where((u) => u.startsWith('http'))
+        .where((u) => u.startsWith('https://'))
         .toList();
     if (urls.isEmpty) return const SizedBox.shrink();
     return SizedBox(
@@ -382,6 +382,7 @@ class GalleryRenderer extends StatelessWidget {
           child: Image.network(
             urls[i],
             width: 200,
+            cacheWidth: 400,
             fit: BoxFit.cover,
             errorBuilder: (_, _, _) => Container(
               width: 200,

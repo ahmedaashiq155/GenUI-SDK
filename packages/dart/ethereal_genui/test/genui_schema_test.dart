@@ -97,6 +97,16 @@ void main() {
       expect(result.hasUnknownType, isTrue);
     });
 
+    test('validates a nested block in when.child', () {
+      final result = validateGenUiSpec({
+        'type': 'when',
+        'key': 'view',
+        'child': {'type': 'totally-bogus'},
+      });
+      expect(result.hasUnknownType, isTrue);
+      expect(result.issues.single.path, r'$.child');
+    });
+
     test('flags an unknown type', () {
       final result = validateGenUiSpec({'type': 'no-such-block'});
       expect(result.isValid, isFalse);

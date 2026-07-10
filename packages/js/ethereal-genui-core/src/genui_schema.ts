@@ -4,7 +4,7 @@
 ///  - the model-facing prompt catalogue (buildGenUiPromptCatalogue), and
 ///  - spec validation (validateGenUiSpec).
 
-export const GENUI_SCHEMA_VERSION = 1
+export const GENUI_SCHEMA_VERSION = 2
 
 export type GenUiFieldType =
   | 'string' | 'int' | 'double' | 'bool' | 'num'
@@ -228,7 +228,7 @@ export const genUiCatalog: readonly GenUiBlockSchema[] = [
   makeSchema({
     type: 'chart',
     category: 'charts',
-    example: '{"type":"chart","chart":"bar|line|pie","title":"…","data":[{"label":"Mon","value":3},{"label":"Tue","value":5}]}',
+    example: '{"type":"chart","chart":"bar|line|area|pie","title":"…","data":[{"label":"Mon","value":3},{"label":"Tue","value":5}]}',
     fields: [
       { name: 'chart', type: 'enum', enumValues: ['bar', 'line', 'pie', 'area'] },
       { name: 'title', type: 'string' },
@@ -438,7 +438,7 @@ export const genUiCatalog: readonly GenUiBlockSchema[] = [
     type: 'artifact',
     category: 'artifact',
     example: '{"type":"artifact","kind":"code|markdown|table|text|html","title":"…","content":"…","language":"dart"}',
-    note: 'kind "html" runs self-contained HTML/CSS/JS in a sandboxed WebView — use it for a fully custom interactive app/game/tool beyond the block types (opens full-screen). Put the whole document in "content"',
+    note: 'kind "html" is passed to a host-provided sandbox — see SECURITY.md; use it for a fully custom interactive app/game/tool beyond the block types. Put the whole document in "content"',
     fields: [
       { name: 'kind', type: 'enum', enumValues: ['code', 'markdown', 'table', 'text', 'html'] },
       { name: 'title', type: 'string' },
@@ -592,6 +592,10 @@ function _validateInto(node: unknown, path: string, issues: GenUiIssue[]): void 
     for (let i = 0; i < children.length; i++) {
       _validateInto(children[i], `${path}.children[${i}]`, issues)
     }
+  }
+  const child = map['child']
+  if (child !== null && typeof child === 'object' && !Array.isArray(child)) {
+    _validateInto(child, `${path}.child`, issues)
   }
   // accordion.items[].content and tabs.tabs[].content are nested blocks.
   for (const key of ['items', 'tabs'] as const) {

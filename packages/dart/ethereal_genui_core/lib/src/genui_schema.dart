@@ -10,7 +10,7 @@
 library;
 
 /// Bumped when the block schema changes in a way models/clients should notice.
-const genUiSchemaVersion = 1;
+const genUiSchemaVersion = 2;
 
 /// Editorial grouping — mirrors how the catalogue reads to the model.
 enum GenUiCategory {
@@ -263,7 +263,7 @@ const List<GenUiBlockSchema> genUiCatalog = [
     type: 'chart',
     category: GenUiCategory.charts,
     example:
-        '{"type":"chart","chart":"bar|line|pie","title":"…","data":[{"label":"Mon","value":3},{"label":"Tue","value":5}]}',
+        '{"type":"chart","chart":"bar|line|area|pie","title":"…","data":[{"label":"Mon","value":3},{"label":"Tue","value":5}]}',
     fields: [
       GenUiField('chart', 'enum', enumValues: ['bar', 'line', 'pie', 'area']),
       GenUiField('title', 'string'),
@@ -483,9 +483,9 @@ const List<GenUiBlockSchema> genUiCatalog = [
     example:
         '{"type":"artifact","kind":"code|markdown|table|text|html","title":"…","content":"…","language":"dart"}',
     note:
-        'kind "html" runs self-contained HTML/CSS/JS in a sandboxed WebView — use '
-        'it for a fully custom interactive app/game/tool beyond the block types '
-        '(opens full-screen). Put the whole document in "content"',
+        'kind "html" is passed to a host-provided sandbox — see SECURITY.md; '
+        'use it for a fully custom interactive app/game/tool beyond the block '
+        'types. Put the whole document in "content"',
     fields: [
       GenUiField('kind', 'enum',
           enumValues: ['code', 'markdown', 'table', 'text', 'html']),
@@ -651,6 +651,10 @@ void _validateInto(Object? node, String path, List<GenUiIssue> issues) {
     for (var i = 0; i < children.length; i++) {
       _validateInto(children[i], '$path.children[$i]', issues);
     }
+  }
+  final child = node['child'];
+  if (child is Map) {
+    _validateInto(child, '$path.child', issues);
   }
   // accordion.items[].content and tabs.tabs[].content are nested blocks.
   for (final key in const ['items', 'tabs']) {

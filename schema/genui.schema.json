@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "GenUI Block",
-  "description": "JSON Schema for Ethereal GenUI blocks (v1)",
+  "description": "JSON Schema for Ethereal GenUI blocks (v2)",
   "oneOf": [
     {
       "$ref": "#/definitions/choices"

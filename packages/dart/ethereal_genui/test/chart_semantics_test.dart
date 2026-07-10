@@ -1,4 +1,6 @@
 import 'package:ethereal_genui/ethereal_genui.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -47,6 +49,17 @@ void main() {
       );
     });
 
+    test('area chart uses an area-specific spoken label', () {
+      expect(
+        chartSemanticLabel(
+          variant: 'area',
+          title: 'Traffic',
+          data: const [(label: 'Mon', value: 3), (label: 'Tue', value: 5)],
+        ),
+        'Traffic. Area chart: Mon 3, Tue 5',
+      );
+    });
+
     test('unknown variant falls back to bar chart', () {
       expect(
         chartSemanticLabel(
@@ -78,6 +91,33 @@ void main() {
         ),
         'Pie chart: Only 100',
       );
+    });
+  });
+
+  group('chart variants', () {
+    Widget host(String variant) => MaterialApp(
+      home: Builder(
+        builder: (context) => buildGenUiSpec(context, {
+          'type': 'chart',
+          'chart': variant,
+          'data': [
+            {'label': 'Mon', 'value': 3},
+            {'label': 'Tue', 'value': 5},
+          ],
+        }, GenUiActions(sendMessage: (_) {})),
+      ),
+    );
+
+    testWidgets('line has no fill while area fills below the line', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host('line'));
+      var chart = tester.widget<LineChart>(find.byType(LineChart));
+      expect(chart.data.lineBarsData.single.belowBarData.show, isFalse);
+
+      await tester.pumpWidget(host('area'));
+      chart = tester.widget<LineChart>(find.byType(LineChart));
+      expect(chart.data.lineBarsData.single.belowBarData.show, isTrue);
     });
   });
 }

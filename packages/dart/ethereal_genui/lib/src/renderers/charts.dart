@@ -14,6 +14,7 @@ String chartSemanticLabel({
   final kind = switch (variant) {
     'pie' => 'Pie chart',
     'line' => 'Line chart',
+    'area' => 'Area chart',
     _ => 'Bar chart',
   };
   String fmt(double v) =>
@@ -23,7 +24,7 @@ String chartSemanticLabel({
   return '$titlePart$kind: $points';
 }
 
-/// {"type":"chart","chart":"bar|line|pie","title":"…","data":[{"label":"Mon","value":3}]}
+/// {"type":"chart","chart":"bar|line|area|pie","title":"…","data":[{"label":"Mon","value":3}]}
 class ChartRenderer extends StatelessWidget {
   const ChartRenderer({super.key, required this.spec});
   final Map<String, dynamic> spec;
@@ -54,7 +55,8 @@ class ChartRenderer extends StatelessWidget {
               child: ExcludeSemantics(
                 child: switch (variant) {
                   'pie' => _pie(context, data),
-                  'line' => _line(context, data),
+                  'line' => _line(context, data, area: false),
+                  'area' => _line(context, data, area: true),
                   _ => _bar(context, data),
                 },
               ),
@@ -120,7 +122,8 @@ class ChartRenderer extends StatelessWidget {
     );
   }
 
-  Widget _line(BuildContext context, List<({String label, double value})> data) {
+  Widget _line(BuildContext context, List<({String label, double value})> data,
+      {required bool area}) {
     final colors = GenUiColors.of(context);
     return LineChart(
       LineChartData(
@@ -137,7 +140,7 @@ class ChartRenderer extends StatelessWidget {
             barWidth: 3,
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
-              show: true,
+              show: area,
               color: colors.accent.withValues(alpha: 0.12),
             ),
           ),

@@ -18,7 +18,7 @@ Display only (no interaction):
 
 More interactive: {"type":"rating","max":5}; {"type":"segmented","options":["A","B"]}; {"type":"stepper","label":"Qty","min":1,"max":9,"value":2}; {"type":"checklist","items":["a","b"]}; {"type":"poll","options":[{"label":"A","votes":3}]}; {"type":"quiz","question":"…","options":["…"],"answer":1,"explanation":"…"}.
 
-Charts: {"type":"chart","chart":"bar|line|pie","title":"…","data":[{"label":"Mon","value":3},{"label":"Tue","value":5}]}.
+Charts: {"type":"chart","chart":"bar|line|area|pie","title":"…","data":[{"label":"Mon","value":3},{"label":"Tue","value":5}]}.
 
 More display: {"type":"timeline","items":[{"title":"…","subtitle":"…","done":true}]}; {"type":"progress","label":"…","value":0.6}; {"type":"badges","items":["new"]}; {"type":"gallery","images":["https://…"]}; {"type":"divider"}.
 
@@ -37,7 +37,7 @@ Freeform primitives — you are NOT limited to the components above; compose the
 - {"type":"spacer","size":12}
 Prefer the high-level components when one fits; reach for primitives to invent something custom.
 
-Artifact (long code/doc opens a focused panel): {"type":"artifact","kind":"code|markdown|table|text|html","title":"…","content":"…","language":"dart"} (kind "html" runs self-contained HTML/CSS/JS in a sandboxed WebView — use it for a fully custom interactive app/game/tool beyond the block types (opens full-screen). Put the whole document in "content").
+Artifact (long code/doc opens a focused panel): {"type":"artifact","kind":"code|markdown|table|text|html","title":"…","content":"…","language":"dart"} (kind "html" is passed to a host-provided sandbox — see SECURITY.md; use it for a fully custom interactive app/game/tool beyond the block types. Put the whole document in "content").
 
 Adaptive (acts on the app) — `theme` recolors this chat; `shortcuts` saves home-screen quick actions: {"type":"theme","accent":"#8B93FF"}; {"type":"shortcuts","items":["Plan my week","Summarize a doc"]}.
 

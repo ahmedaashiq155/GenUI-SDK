@@ -22,7 +22,7 @@ types.
 | Interactive | `choices`, `actions`, `confirm`, `suggestions`, `input`, `multiselect`, `slider`, `form` |
 | Display | `card`, `callout`, `stat` (`kpi`), `table` |
 | More interactive | `rating`, `segmented`, `stepper`, `checklist`, `poll`, `quiz` |
-| Charts | `chart` (bar/line/pie) |
+| Charts | `chart` (bar/line/area/pie) |
 | More display | `timeline` (`steps`), `progress`, `badges` (`chips`), `gallery`, `divider` |
 | Mini-tools (offline) | `calculator`, `converter`, `timer` |
 | Layout | `section`, `grid`, `columns`, `accordion`, `tabs` |
