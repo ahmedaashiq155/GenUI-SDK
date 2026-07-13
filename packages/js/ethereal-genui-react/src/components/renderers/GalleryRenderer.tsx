@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { GenUiEmptyState } from '../GenUiEmptyState.js'
 
 export interface GalleryRendererProps {
   spec: Record<string, unknown>
@@ -11,11 +12,23 @@ export function GalleryRenderer({ spec, className, style }: GalleryRendererProps
   // Require https:// — plaintext http is a downgrade/MITM vector and, like
   // any spec-supplied URL, an auto-loaded remote image doubles as a tracking
   // pixel. `spec.images` may not be an array on hostile input.
-  const urls = (Array.isArray(spec.images) ? spec.images : [])
-    .map(String)
-    .filter((u) => u.startsWith('https://'))
+  const alt = Array.isArray(spec.alt) ? spec.alt.map(String) : []
+  const images = (Array.isArray(spec.images) ? spec.images : [])
+    .map((raw, index) => {
+      if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
+        const image = raw as Record<string, unknown>
+        return {
+          url: String(image.url ?? image.src ?? ''),
+          alt: String(image.alt ?? image.altText ?? ''),
+        }
+      }
+      return { url: String(raw), alt: alt[index] ?? '' }
+    })
+    .filter((image) => image.url.startsWith('https://'))
 
-  if (urls.length === 0) return null
+  if (images.length === 0) {
+    return <GenUiEmptyState label="No images" icon="▧" className={className} style={style} />
+  }
 
   return (
     <div
@@ -31,14 +44,14 @@ export function GalleryRenderer({ spec, className, style }: GalleryRendererProps
         ...style,
       }}
     >
-      {urls.map((url, i) => (
-        <GalleryImage key={i} url={url} />
+      {images.map((image, i) => (
+        <GalleryImage key={i} {...image} />
       ))}
     </div>
   )
 }
 
-function GalleryImage({ url }: { url: string }) {
+function GalleryImage({ url, alt }: { url: string; alt: string }) {
   const [errored, setErrored] = useState(false)
 
   if (errored) {
@@ -63,7 +76,7 @@ function GalleryImage({ url }: { url: string }) {
   return (
     <img
       src={url}
-      alt=""
+      alt={alt}
       loading="lazy"
       referrerPolicy="no-referrer"
       onError={() => setErrored(true)}

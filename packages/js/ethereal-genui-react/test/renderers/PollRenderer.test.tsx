@@ -58,4 +58,21 @@ describe('PollRenderer', () => {
     expect(dogs.hasAttribute('disabled')).toBe(true)
     expect(dogs.getAttribute('aria-pressed')).toBe('false')
   })
+
+  it('resyncs patched options and preserves the vote by stable value', () => {
+    const onSend = vi.fn()
+    const spec = { type: 'poll', options: [
+      { label: 'Alpha', value: 'a', votes: 1 },
+      { label: 'Beta', value: 'b', votes: 2 },
+    ] }
+    const { rerender } = render(<PollRenderer spec={spec} onSend={onSend} />)
+    fireEvent.click(screen.getByRole('button', { name: /Alpha/ }))
+    rerender(<PollRenderer spec={{ ...spec, options: [
+      { label: 'Beta updated', value: 'b', votes: 3 },
+      { label: 'Alpha updated', value: 'a', votes: 2 },
+    ] }} onSend={onSend} />)
+    expect(screen.getByRole('button', { name: /Alpha updated/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: /Beta updated/ }).hasAttribute('disabled')).toBe(true)
+    expect(onSend).toHaveBeenCalledTimes(1)
+  })
 })

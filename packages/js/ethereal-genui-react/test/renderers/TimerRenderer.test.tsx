@@ -50,4 +50,17 @@ describe('TimerRenderer', () => {
     const el = container.firstElementChild as HTMLElement
     expect(el.className).toBe('timer-cls')
   })
+
+  it('resets when a patch changes the duration', () => {
+    const { rerender } = render(<TimerRenderer spec={{ type: 'timer', seconds: 60 }} />)
+    fireEvent.click(screen.getByText('Start'))
+    rerender(<TimerRenderer spec={{ type: 'timer', seconds: 90 }} />)
+    expect(screen.getByText('01:30')).toBeDefined()
+    expect(screen.getByText('Start')).toBeDefined()
+  })
+
+  it('clamps negative durations to zero', () => {
+    render(<TimerRenderer spec={{ type: 'timer', seconds: -5 }} />)
+    expect(screen.getByText('00:00')).toBeDefined()
+  })
 })

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { usePersistedState } from '../../provider.js'
 import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
 
@@ -23,11 +23,18 @@ export function StepperRenderer({ spec, onSend, className, style }: StepperRende
   const label = String(spec.label ?? spec.title ?? '')
   const unit = String(spec.unit ?? '')
   const id = spec.id as string | undefined
-  const min = toInt(spec.min, 0)
-  const max = toInt(spec.max, 99)
-  const step = toInt(spec.step, 1)
+  const rawMin = toInt(spec.min, 0)
+  const rawMax = toInt(spec.max, 99)
+  const min = Math.min(rawMin, rawMax)
+  const max = Math.max(rawMin, rawMax)
+  const step = Math.max(Math.abs(toInt(spec.step, 1)), 1)
+  const specValue = Math.min(Math.max(toInt(spec.value, min), min), max)
 
-  const [value, setValue] = usePersistedState<number>(id, toInt(spec.value, min))
+  const [value, setValue] = usePersistedState<number>(id, specValue)
+
+  useEffect(() => {
+    setValue(Math.min(Math.max(specValue, min), max))
+  }, [max, min, setValue, specValue])
 
   const btnStyle = (disabled: boolean): React.CSSProperties => ({
     width: '38px',
@@ -74,9 +81,9 @@ export function StepperRenderer({ spec, onSend, className, style }: StepperRende
         </span>
       )}
       <button
-        onClick={() => value > min && setValue(value - step)}
-        disabled={!enabled || value <= min}
-        style={btnStyle(!enabled || value <= min)}
+        onClick={() => value - step >= min && setValue(Math.max(value - step, min))}
+        disabled={!enabled || value - step < min}
+        style={btnStyle(!enabled || value - step < min)}
       >
         −
       </button>
@@ -90,9 +97,9 @@ export function StepperRenderer({ spec, onSend, className, style }: StepperRende
         {value}{unit}
       </span>
       <button
-        onClick={() => value < max && setValue(value + step)}
-        disabled={!enabled || value >= max}
-        style={btnStyle(!enabled || value >= max)}
+        onClick={() => value + step <= max && setValue(Math.min(value + step, max))}
+        disabled={!enabled || value + step > max}
+        style={btnStyle(!enabled || value + step > max)}
       >
         +
       </button>

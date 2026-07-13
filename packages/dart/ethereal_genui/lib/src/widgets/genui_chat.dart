@@ -3,6 +3,8 @@ import 'package:ethereal_genui_core/ethereal_genui_core.dart';
 import 'package:ethereal_genui_llm/ethereal_genui_llm.dart';
 import '../genui_actions.dart';
 import '../genui_block.dart';
+import '../genui_localizations.dart';
+import '../genui_theme.dart';
 
 /// One widget that wires a [GenUiDirectConnection] to a streaming chat UI.
 ///
@@ -80,6 +82,8 @@ class _GenUiChatState extends State<GenUiChat> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = GenUiLocalizations.of(context);
+    final theme = GenUiTheme.of(context);
     // GenUiActions wires interactive UI controls back into the conversation.
     final actions = GenUiActions(sendMessage: _send, enabled: !_sending);
 
@@ -94,16 +98,20 @@ class _GenUiChatState extends State<GenUiChat> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(GenUiSpace.sm),
                     child: Text(
                       'You: ${turn.userText}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   for (final seg in turn.segments)
                     if (seg is TextSegment)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: GenUiSpace.sm,
+                        ),
                         child: Text(seg.markdown),
                       )
                     else if (seg is UiSegment)
@@ -118,20 +126,27 @@ class _GenUiChatState extends State<GenUiChat> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(theme.spacing.sm),
           child: Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _controller,
+                  enabled: !_sending,
                   decoration:
                       widget.inputDecoration ??
-                      const InputDecoration(hintText: 'Message...'),
+                      InputDecoration(
+                        hintText: strings.text(
+                          GenUiStringKey.messageHint,
+                          'Message…',
+                        ),
+                      ),
                   onSubmitted: _sending ? null : _send,
                 ),
               ),
               IconButton(
                 onPressed: _sending ? null : () => _send(_controller.text),
+                tooltip: strings.text(GenUiStringKey.send, 'Send'),
                 icon: const Icon(Icons.send),
               ),
             ],

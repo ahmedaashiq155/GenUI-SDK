@@ -37,3 +37,16 @@
     --ethereal-danger: #f87171;
   }
 }
+@keyframes ethereal-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ethereal-scale { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+@keyframes ethereal-slideUp { from { opacity: 0; transform: translateY(8%); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ethereal-slideDown { from { opacity: 0; transform: translateY(-8%); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ethereal-slideStart { from { opacity: 0; transform: translateX(-8%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes ethereal-slideEnd { from { opacity: 0; transform: translateX(8%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes ethereal-pulse { from { transform: scale(.97); } to { transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ethereal-animation {
+    animation: none !important;
+  }
+}

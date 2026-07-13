@@ -4,7 +4,7 @@
 ///  - the model-facing prompt catalogue (buildGenUiPromptCatalogue), and
 ///  - spec validation (validateGenUiSpec).
 
-export const GENUI_SCHEMA_VERSION = 2
+export const GENUI_SCHEMA_VERSION = 4
 
 export type GenUiFieldType =
   | 'string' | 'int' | 'double' | 'bool' | 'num'
@@ -122,7 +122,7 @@ export const genUiCatalog: readonly GenUiBlockSchema[] = [
   makeSchema({
     type: 'form',
     category: 'interactive',
-    example: '{"type":"form","title":"Booking","fields":[{"key":"name","label":"Name","type":"text"},{"key":"guests","label":"Guests","type":"number"},{"key":"seat","label":"Seating","type":"select","options":["Indoor","Outdoor"]},{"key":"vip","label":"VIP","type":"toggle"}],"submitLabel":"Submit"}',
+    example: '{"type":"form","title":"Booking","fields":[{"key":"name","label":"Name","type":"text","required":true},{"key":"guests","label":"Guests","type":"number"},{"key":"seat","label":"Seating","type":"select","options":["Indoor","Outdoor"],"required":true},{"key":"vip","label":"VIP","type":"toggle"}],"submitLabel":"Submit"}',
     fields: [
       { name: 'title', type: 'string' },
       { name: 'fields', type: 'list', required: true },
@@ -260,8 +260,11 @@ export const genUiCatalog: readonly GenUiBlockSchema[] = [
   makeSchema({
     type: 'gallery',
     category: 'moreDisplay',
-    example: '{"type":"gallery","images":["https://…"]}',
-    fields: [{ name: 'images', type: 'list', required: true }],
+    example: '{"type":"gallery","images":["https://…"],"alt":["Description"]}',
+    fields: [
+      { name: 'images', type: 'list', required: true },
+      { name: 'alt', type: 'list' },
+    ],
   }),
   makeSchema({
     type: 'divider',
@@ -335,6 +338,20 @@ export const genUiCatalog: readonly GenUiBlockSchema[] = [
       { name: 'equals', type: 'string' },
       { name: 'child', type: 'map' },
       { name: 'children', type: 'list' },
+    ],
+  }),
+  makeSchema({
+    type: 'animate',
+    category: 'layout',
+    childrenAllowed: true,
+    example: '{"type":"animate","effect":"fade|scale|slideUp|slideDown|slideStart|slideEnd|pulse","duration":250,"delay":0,"repeat":false,"child":{…}}',
+    note: 'reduce-motion-aware presentation wrapper; use repeat only for meaningful status/emphasis, never decoration',
+    fields: [
+      { name: 'effect', type: 'enum', enumValues: ['fade', 'scale', 'slideUp', 'slideDown', 'slideStart', 'slideEnd', 'pulse'] },
+      { name: 'duration', type: 'int' },
+      { name: 'delay', type: 'int' },
+      { name: 'repeat', type: 'bool' },
+      { name: 'child', type: 'map', required: true },
     ],
   }),
 
@@ -468,8 +485,8 @@ export const genUiKnownTypes: Set<string> = new Set(
 )
 
 /// Lookup by canonical type or alias.
-export function genUiSchemaFor(type: string): GenUiBlockSchema | undefined {
-  for (const b of genUiCatalog) {
+export function genUiSchemaFor(type: string, catalog: readonly GenUiBlockSchema[] = genUiCatalog): GenUiBlockSchema | undefined {
+  for (const b of catalog) {
     if (b.type === type || (b.aliases ?? []).includes(type)) return b
   }
   return undefined
@@ -528,11 +545,11 @@ function _exampleLine(b: GenUiBlockSchema): string {
 
 /// Builds the model-facing UI catalogue from genUiCatalog. This replaces the
 /// hand-maintained prose blob so the prompt can never drift from the renderers.
-export function buildGenUiPromptCatalogue(): string {
+export function buildGenUiPromptCatalogue(catalog: readonly GenUiBlockSchema[] = genUiCatalog): string {
   let buf = _promptIntro
   for (const category of _categoryOrder) {
     const meta = _categoryMeta[category]
-    const blocks = genUiCatalog.filter(b => b.category === category)
+    const blocks = catalog.filter(b => b.category === category)
     if (blocks.length === 0) continue
     buf += `\n\n${meta.intro}`
     if (meta.bullet) {
@@ -558,9 +575,9 @@ const _selfContainedNote =
 /// Validates a parsed `ui` spec against the catalog. Tolerant by design: it
 /// reports unknown types and missing required fields but does not throw, so
 /// rendering can still degrade gracefully. Recurses into child blocks.
-export function validateGenUiSpec(spec: unknown, path = '$'): GenUiValidation {
+export function validateGenUiSpec(spec: unknown, path = '$', catalog: readonly GenUiBlockSchema[] = genUiCatalog): GenUiValidation {
   const issues: GenUiIssue[] = []
-  _validateInto(spec, path, issues)
+  _validateInto(spec, path, issues, catalog)
   return {
     issues,
     isValid: issues.length === 0,
@@ -568,7 +585,7 @@ export function validateGenUiSpec(spec: unknown, path = '$'): GenUiValidation {
   }
 }
 
-function _validateInto(node: unknown, path: string, issues: GenUiIssue[]): void {
+function _validateInto(node: unknown, path: string, issues: GenUiIssue[], catalog: readonly GenUiBlockSchema[]): void {
   if (node === null || typeof node !== 'object' || Array.isArray(node)) return
   const map = node as Record<string, unknown>
   const type = String(map['type'] ?? '')
@@ -576,7 +593,7 @@ function _validateInto(node: unknown, path: string, issues: GenUiIssue[]): void 
     issues.push({ path, message: 'missing "type"' })
     return
   }
-  const schema = genUiSchemaFor(type)
+  const schema = genUiSchemaFor(type, catalog)
   if (schema == null) {
     issues.push({ path, message: `unknown type "${type}"` })
     return
@@ -590,12 +607,12 @@ function _validateInto(node: unknown, path: string, issues: GenUiIssue[]): void 
   const children = map['children']
   if (Array.isArray(children)) {
     for (let i = 0; i < children.length; i++) {
-      _validateInto(children[i], `${path}.children[${i}]`, issues)
+      _validateInto(children[i], `${path}.children[${i}]`, issues, catalog)
     }
   }
   const child = map['child']
   if (child !== null && typeof child === 'object' && !Array.isArray(child)) {
-    _validateInto(child, `${path}.child`, issues)
+    _validateInto(child, `${path}.child`, issues, catalog)
   }
   // accordion.items[].content and tabs.tabs[].content are nested blocks.
   for (const key of ['items', 'tabs'] as const) {
@@ -606,7 +623,7 @@ function _validateInto(node: unknown, path: string, issues: GenUiIssue[]): void 
         if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
           const itemMap = item as Record<string, unknown>
           if (itemMap['content'] !== null && typeof itemMap['content'] === 'object' && !Array.isArray(itemMap['content'])) {
-            _validateInto(itemMap['content'], `${path}.${key}[${i}].content`, issues)
+            _validateInto(itemMap['content'], `${path}.${key}[${i}].content`, issues, catalog)
           }
         }
       }

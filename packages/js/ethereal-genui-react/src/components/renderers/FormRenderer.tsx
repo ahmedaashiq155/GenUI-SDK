@@ -1,4 +1,4 @@
-import React, { useId } from 'react'
+import React, { useId, useState } from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
 import { usePersistedState } from '../../provider.js'
 import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
@@ -20,15 +20,38 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
   )
 
   const [values, setValues] = usePersistedState<Record<string, unknown>>(id, {})
-  const setField = (key: string, v: unknown) => setValues({ ...values, [key]: v })
+  const [touched, setTouched] = useState<Set<string>>(() => new Set())
+  const setField = (key: string, v: unknown) => {
+    setTouched(previous => new Set(previous).add(key))
+    setValues({ ...values, [key]: v })
+  }
   const idBase = useId()
 
+  const fieldValue = (field: Record<string, unknown>): unknown => {
+    const key = String(field.key ?? field.label ?? '')
+    return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : field.value
+  }
+
+  const isMissing = (field: Record<string, unknown>): boolean => {
+    const value = fieldValue(field)
+    if (String(field.type ?? 'text') === 'toggle') return value !== true
+    return value == null || String(value).trim() === ''
+  }
+
+  const hasAnyValue = fields.some(field => {
+    const value = fieldValue(field)
+    return typeof value === 'boolean' ? value : value != null && String(value).trim() !== ''
+  })
+  const requiredFieldsValid = fields.every(field => field.required !== true || !isMissing(field))
+  const canSubmit = enabled && hasAnyValue && requiredFieldsValid
+
   const handleSubmit = () => {
+    if (!canSubmit) return
     const lines = fields
       .map(f => {
         const key = String(f.key ?? f.label ?? '')
         const label = String(f.label ?? key)
-        const v = values[key]
+        const v = fieldValue(f)
         return v != null && String(v).trim() ? `${label}: ${String(v).trim()}` : null
       })
       .filter((l): l is string => l !== null)
@@ -87,21 +110,33 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
         const key = String(f.key ?? f.label ?? '')
         const fieldLabel = String(f.label ?? key)
         const fieldType = String(f.type ?? 'text')
+        const required = f.required === true
+        const displayLabel = required ? `${fieldLabel} *` : fieldLabel
+        const error = required && touched.has(key) && isMissing(f)
+          ? String(f.requiredMessage ?? 'This field is required')
+          : undefined
+        const errorId = `${idBase}-f${idx}-error`
 
         if (fieldType === 'toggle') {
           const boolVal = (values[key] as boolean | undefined) ?? (f.value === true)
           const fieldId = `${idBase}-f${idx}`
           return (
-            <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label htmlFor={fieldId} style={{ color: 'var(--ethereal-text-primary)', fontSize: '1rem' }}>{fieldLabel}</label>
-              <input
-                id={fieldId}
-                type="checkbox"
-                checked={boolVal}
-                disabled={!enabled}
-                onChange={(e) => setField(key, e.target.checked)}
-                style={{ accentColor: 'var(--ethereal-accent)', width: '1.25rem', height: '1.25rem', cursor: 'pointer' }}
-              />
+            <div key={key || idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label htmlFor={fieldId} style={{ color: 'var(--ethereal-text-primary)', fontSize: '1rem' }}>{displayLabel}</label>
+                <input
+                  id={fieldId}
+                  type="checkbox"
+                  checked={boolVal}
+                  required={required}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? errorId : undefined}
+                  disabled={!enabled}
+                  onChange={(e) => setField(key, e.target.checked)}
+                  style={{ accentColor: 'var(--ethereal-accent)', width: '1.25rem', height: '1.25rem', cursor: enabled ? 'pointer' : 'not-allowed' }}
+                />
+              </div>
+              {error && <span id={errorId} role="alert" style={{ color: 'var(--ethereal-danger)', fontSize: '0.75rem' }}>{error}</span>}
             </div>
           )
         }
@@ -109,9 +144,9 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
         if (fieldType === 'select') {
           const options = genUiOptions(f.options)
           return (
-            <div key={idx} style={{ display: 'flex', flexDirection: 'column' }}>
-              <p style={labelStyle}>{fieldLabel}</p>
-              <div role="group" aria-label={fieldLabel} style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--ethereal-space-sm)' }}>
+            <div key={key || idx} style={{ display: 'flex', flexDirection: 'column' }}>
+              <p style={labelStyle}>{displayLabel}</p>
+              <div role="group" aria-label={fieldLabel} aria-required={required} aria-invalid={error ? true : undefined} aria-describedby={error ? errorId : undefined} style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--ethereal-space-sm)' }}>
                 {options.map((opt) => {
                   const isSel = values[key] === opt.value
                   return (
@@ -140,6 +175,7 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
                   )
                 })}
               </div>
+              {error && <span id={errorId} role="alert" style={{ color: 'var(--ethereal-danger)', fontSize: '0.75rem', marginTop: '4px' }}>{error}</span>}
             </div>
           )
         }
@@ -147,29 +183,33 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
         // text | number
         const fieldId = `${idBase}-f${idx}`
         return (
-          <div key={idx} style={{ display: 'flex', flexDirection: 'column' }}>
-            <label htmlFor={fieldId} style={labelStyle}>{fieldLabel}</label>
+          <div key={key || idx} style={{ display: 'flex', flexDirection: 'column' }}>
+            <label htmlFor={fieldId} style={labelStyle}>{displayLabel}</label>
             <input
               id={fieldId}
               type={fieldType === 'number' ? 'number' : 'text'}
-              value={String(values[key] ?? '')}
+              value={String(fieldValue(f) ?? '')}
+              required={required}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
               disabled={!enabled}
               placeholder={String(f.placeholder ?? '')}
               onChange={(e) => setField(key, e.target.value)}
               style={inputStyle}
             />
+            {error && <span id={errorId} role="alert" style={{ color: 'var(--ethereal-danger)', fontSize: '0.75rem', marginTop: '4px' }}>{error}</span>}
           </div>
         )
       })}
       <button
         onClick={handleSubmit}
-        disabled={!enabled}
+        disabled={!canSubmit}
         style={{
           padding: '8px var(--ethereal-space-lg)',
           borderRadius: 'var(--ethereal-radius-pill)',
           border: 'none',
-          cursor: enabled ? 'pointer' : 'not-allowed',
-          opacity: enabled ? 1 : 0.55,
+          cursor: canSubmit ? 'pointer' : 'not-allowed',
+          opacity: canSubmit ? 1 : 0.55,
           fontWeight: 500,
           fontSize: '0.875rem',
           backgroundColor: 'var(--ethereal-accent)',
@@ -178,8 +218,8 @@ export function FormRenderer({ spec, onSend, className, style }: FormRendererPro
           transition: 'opacity 0.1s ease',
           marginTop: 'var(--ethereal-space-sm)',
         }}
-        onMouseOver={(e) => (e.currentTarget.style.opacity = '0.8')}
-        onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}
+        onMouseOver={(e) => { if (canSubmit) e.currentTarget.style.opacity = '0.8' }}
+        onMouseOut={(e) => (e.currentTarget.style.opacity = canSubmit ? '1' : '0.55')}
       >
         {submitLabel}
       </button>

@@ -10,7 +10,7 @@
 ///  - **Delta loop** — [applyJsonPatch] (RFC 6902) for incremental UI/state
 ///    updates instead of resending the whole spec.
 ///  - **Host-agnostic theming** — follows the nearest Material theme by default,
-///    with optional custom role mapping through [genUiColorResolver].
+///    with subtree-scoped custom tokens through [GenUiTheme].
 ///
 /// Typical use:
 /// ```dart
@@ -23,13 +23,24 @@ export 'package:ethereal_genui_core/ethereal_genui_core.dart';
 
 // Flutter-layer
 export 'src/genui_actions.dart';
+export 'src/genui_composer.dart';
+export 'src/genui_devtools.dart';
+export 'src/genui_input.dart';
+export 'src/genui_localizations.dart';
+export 'src/genui_voice.dart';
 export 'src/widgets/genui_chat.dart';
 export 'src/genui_block.dart'
     show buildGenUiSpec, genUiPlaceholder, GenUiBlock, kGenUiMaxDepth;
 export 'src/genui_registry.dart';
 export 'src/genui_state.dart';
 export 'src/genui_theme.dart';
-export 'src/genui_common.dart' show GenUi;
+export 'src/genui_common.dart'
+    show
+        GenUi,
+        GenUiContrast,
+        GenUiForegroundScope,
+        GenUiFrameScope,
+        GenUiFrameVariant;
 
 // AG-UI Flutter adapter
 export 'src/agui_flutter_adapter.dart';

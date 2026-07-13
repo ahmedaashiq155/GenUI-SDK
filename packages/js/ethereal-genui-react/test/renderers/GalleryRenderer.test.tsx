@@ -1,19 +1,19 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { GalleryRenderer } from '../../src/components/renderers/GalleryRenderer.js'
 
 describe('GalleryRenderer', () => {
-  it('returns null for empty images', () => {
-    const { container } = render(<GalleryRenderer spec={{ type: 'gallery', images: [] }} />)
-    expect(container.firstChild).toBeNull()
+  it('renders a consistent empty state for empty images', () => {
+    render(<GalleryRenderer spec={{ type: 'gallery', images: [] }} />)
+    expect(screen.getByRole('status', { name: 'No images' })).toBeDefined()
   })
 
   it('filters non-http(s) URLs', () => {
     const { container } = render(
       <GalleryRenderer spec={{ type: 'gallery', images: ['ftp://bad.com/img.jpg', 'data:image/png;base64,...'] }} />
     )
-    // none are https so returns null
-    expect(container.firstChild).toBeNull()
+    // none are https, so the renderer explains the empty result.
+    expect(container.textContent).toContain('No images')
   })
 
   it('renders only https URLs, dropping plaintext http', () => {
@@ -27,9 +27,32 @@ describe('GalleryRenderer', () => {
     expect(imgs[0].getAttribute('src')).toBe('https://example.com/a.jpg')
   })
 
-  it('returns null when images key is absent', () => {
-    const { container } = render(<GalleryRenderer spec={{ type: 'gallery' }} />)
-    expect(container.firstChild).toBeNull()
+  it('uses schema alt text and supports self-describing image objects', () => {
+    const { rerender } = render(
+      <GalleryRenderer
+        spec={{
+          type: 'gallery',
+          images: ['https://example.com/lake.jpg'],
+          alt: ['A quiet lake at sunrise'],
+        }}
+      />
+    )
+    expect(screen.getByAltText('A quiet lake at sunrise')).toBeDefined()
+
+    rerender(
+      <GalleryRenderer
+        spec={{
+          type: 'gallery',
+          images: [{ url: 'https://example.com/forest.jpg', alt: 'A green forest' }],
+        }}
+      />
+    )
+    expect(screen.getByAltText('A green forest')).toBeDefined()
+  })
+
+  it('renders an empty state when images key is absent', () => {
+    render(<GalleryRenderer spec={{ type: 'gallery' }} />)
+    expect(screen.getByText('No images')).toBeDefined()
   })
 
   it('forwards className to root element when images are present', () => {

@@ -42,4 +42,12 @@ describe('StepperRenderer', () => {
     expect(el.className).toBe('step-cls')
     expect(el.style.padding).toBe('6px')
   })
+
+  it('resyncs when a patch changes the configured value', () => {
+    const { rerender } = render(<StepperRenderer spec={{ type: 'stepper', min: 1, max: 9, value: 2 }} onSend={vi.fn()} />)
+    fireEvent.click(screen.getByText('+'))
+    expect(screen.getByText('3')).toBeDefined()
+    rerender(<StepperRenderer spec={{ type: 'stepper', min: 1, max: 9, value: 7 }} onSend={vi.fn()} />)
+    expect(screen.getByText('7')).toBeDefined()
+  })
 })

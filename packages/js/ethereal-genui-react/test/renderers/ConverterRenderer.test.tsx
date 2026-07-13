@@ -61,4 +61,13 @@ describe('ConverterRenderer', () => {
     const el = container.firstElementChild as HTMLElement
     expect(el.className).toBe('conv-cls')
   })
+
+  it('resyncs unit definitions after a patch', () => {
+    const { container, rerender } = render(
+      <ConverterRenderer spec={{ type: 'converter', units: [{ label: 'm', factor: 1 }, { label: 'km', factor: 1000 }] }} />
+    )
+    rerender(<ConverterRenderer spec={{ type: 'converter', units: [{ label: 'cm', factor: 0.01 }, { label: 'm', factor: 1 }] }} />)
+    const selects = container.querySelectorAll('select')
+    expect(Array.from(selects[0].options).map(option => option.text)).toEqual(['cm', 'm'])
+  })
 })

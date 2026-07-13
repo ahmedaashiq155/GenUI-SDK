@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { usePersistedState } from '../../provider.js'
 import { Pressable } from '../Pressable.js'
 import { useGenUiInteractionEnabled } from '../GenUiInteraction.js'
@@ -15,35 +15,54 @@ export function PollRenderer({ spec, onSend, className, style }: PollRendererPro
   const title = spec.title as string | undefined
   const id = spec.id as string | undefined
 
-  // Parse raw options — may be strings or objects with label+votes
   const rawOptions = Array.isArray(spec.options) ? spec.options : []
-  const labels: string[] = rawOptions.map(o =>
-    typeof o === 'object' && o !== null
-      ? String((o as Record<string, unknown>).label ?? '')
-      : String(o)
-  )
-
-  const [votedIndex, setVotedIndex] = usePersistedState<number>(id, -1)
-  const [votes, setVotes] = useState<number[]>(() => {
-    const seeded = rawOptions.map(o =>
-      typeof o === 'object' && o !== null && (o as Record<string, unknown>).votes
-        ? Number((o as Record<string, unknown>).votes)
-        : 0
-    )
-    // On remount with an already-persisted vote, re-apply the user's own
-    // increment — the vote count itself isn't persisted, only the index.
-    if (votedIndex >= 0 && votedIndex < seeded.length) {
-      seeded[votedIndex] += 1
+  const options = useMemo(() => rawOptions.map(o => {
+    if (typeof o === 'object' && o !== null) {
+      const map = o as Record<string, unknown>
+      const label = String(map.label ?? map.value ?? '')
+      const value = String(map.value ?? map.send ?? map.label ?? '')
+      const rawVotes = Number(map.votes ?? 0)
+      return { label, value, votes: Number.isFinite(rawVotes) && rawVotes > 0 ? rawVotes : 0 }
     }
-    return seeded
-  })
+    const value = String(o)
+    return { label: value, value, votes: 0 }
+  }), [spec.options])
+
+  const [storedVote, setStoredVote] = usePersistedState<string | number>(id, -1)
+  const votedValue = typeof storedVote === 'number'
+    ? options[storedVote]?.value ?? null
+    : options.some(option => option.value === storedVote) ? storedVote : null
+  const localVotePending = useRef(votedValue != null)
+  const previousBaseVotes = useRef(new Map(options.map(option => [option.value, option.votes])))
+  const [votes, setVotes] = useState<number[]>(() => options.map(option =>
+    option.votes + (option.value === votedValue ? 1 : 0)
+  ))
+
+  useEffect(() => {
+    if (typeof storedVote === 'number' && votedValue != null) setStoredVote(votedValue)
+  }, [setStoredVote, storedVote, votedValue])
+
+  useEffect(() => {
+    if (votedValue != null && localVotePending.current) {
+      const oldBase = previousBaseVotes.current.get(votedValue)
+      const newBase = options.find(option => option.value === votedValue)?.votes
+      if (oldBase != null && newBase != null && newBase > oldBase) {
+        localVotePending.current = false
+      }
+    }
+    setVotes(options.map(option =>
+      option.votes + (localVotePending.current && option.value === votedValue ? 1 : 0)
+    ))
+    previousBaseVotes.current = new Map(options.map(option => [option.value, option.votes]))
+  }, [options, votedValue])
 
   const handleVote = (i: number) => {
-    if (votedIndex >= 0) return
+    if (votedValue != null) return
     const newVotes = votes.map((v, idx) => idx === i ? v + 1 : v)
+    localVotePending.current = true
     setVotes(newVotes)
-    setVotedIndex(i)
-    onSend(labels[i])
+    setStoredVote(options[i].value)
+    onSend(options[i].value)
   }
 
   const total = Math.max(votes.reduce((a, b) => a + b, 0), 1)
@@ -75,14 +94,14 @@ export function PollRenderer({ spec, onSend, className, style }: PollRendererPro
           {title}
         </p>
       )}
-      {labels.map((lbl, i) => {
-        const pct = votedIndex >= 0 ? votes[i] / total : 0
-        const isVoted = i === votedIndex
+      {options.map((option, i) => {
+        const pct = votedValue != null ? votes[i] / total : 0
+        const isVoted = option.value === votedValue
         return (
           <Pressable
-            key={i}
+            key={option.value}
             onPress={() => handleVote(i)}
-            disabled={!enabled || votedIndex >= 0}
+            disabled={!enabled || votedValue != null}
             aria-pressed={isVoted}
             style={{
               position: 'relative',
@@ -96,7 +115,7 @@ export function PollRenderer({ spec, onSend, className, style }: PollRendererPro
             }}
           >
             {/* Fill bar */}
-            {votedIndex >= 0 && (
+            {votedValue != null && (
               <span aria-hidden="true" style={{
                 position: 'absolute',
                 top: 0,
@@ -125,9 +144,9 @@ export function PollRenderer({ spec, onSend, className, style }: PollRendererPro
                 color: 'var(--ethereal-text-primary)',
                 fontSize: '0.9375rem',
               }}>
-                {lbl}
+                {option.label}
               </span>
-              {votedIndex >= 0 && (
+              {votedValue != null && (
                 <span style={{
                   fontSize: '0.8125rem',
                   color: 'var(--ethereal-text-secondary, var(--ethereal-text-primary))',

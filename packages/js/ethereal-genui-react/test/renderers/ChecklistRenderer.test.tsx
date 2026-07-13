@@ -52,4 +52,16 @@ describe('ChecklistRenderer', () => {
     fireEvent.click(row)
     expect(row.getAttribute('aria-checked')).toBe('false')
   })
+
+  it('keeps checked state with the item value when items reorder', () => {
+    const first = { type: 'checklist', items: [
+      { label: 'First', value: 'first' },
+      { label: 'Second', value: 'second' },
+    ] }
+    const { rerender } = render(<ChecklistRenderer spec={first} onSend={vi.fn()} />)
+    fireEvent.click(screen.getByRole('checkbox', { name: /Second/ }))
+    rerender(<ChecklistRenderer spec={{ ...first, items: [...first.items].reverse() }} onSend={vi.fn()} />)
+    expect(screen.getByRole('checkbox', { name: /Second/ }).getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByRole('checkbox', { name: /First/ }).getAttribute('aria-checked')).toBe('false')
+  })
 })

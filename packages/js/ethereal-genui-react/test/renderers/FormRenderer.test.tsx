@@ -33,13 +33,31 @@ describe('FormRenderer', () => {
     expect(onSend).toHaveBeenCalledWith(expect.stringContaining('Name: Alice'))
   })
 
-  it('omits empty fields from message', () => {
+  it('does not submit a completely empty form', () => {
     const onSend = vi.fn()
     render(<FormRenderer spec={basicSpec} onSend={onSend} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
-    // empty submit should produce empty string or only non-empty fields
-    const call = onSend.mock.calls[0]?.[0] as string
-    expect(call).not.toContain('Name:')
+    const submit = screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    fireEvent.click(submit)
+    expect(onSend).not.toHaveBeenCalled()
+  })
+
+  it('requires every field marked required before submit', () => {
+    const onSend = vi.fn()
+    render(<FormRenderer spec={{
+      type: 'form',
+      fields: [
+        { key: 'name', label: 'Name', type: 'text', required: true },
+        { key: 'seat', label: 'Seating', type: 'select', options: ['Inside', 'Outside'], required: true },
+      ],
+    }} onSend={onSend} />)
+    const submit = screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement
+    fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'Alice' } })
+    expect(submit.disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Inside' }))
+    expect(submit.disabled).toBe(false)
+    fireEvent.click(submit)
+    expect(onSend).toHaveBeenCalledWith('Name: Alice\nSeating: Inside')
   })
 
   it('renders select type fields', () => {

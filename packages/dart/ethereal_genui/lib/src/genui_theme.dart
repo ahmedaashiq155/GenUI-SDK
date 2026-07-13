@@ -15,6 +15,9 @@ import 'package:flutter/material.dart';
 /// startup, e.g. `genUiColorResolver = (c) => GenUiColors(accent: c.colors.accent, …);`.
 /// Called with the renderer's own context, so it picks up any nearer Theme
 /// override (per-conversation / Live App accent) automatically.
+@Deprecated(
+  'Use ThemeData.extensions with GenUiTheme for subtree-scoped overrides.',
+)
 GenUiColors Function(BuildContext context)? genUiColorResolver;
 
 /// The colour roles the renderers use. A small, stable surface — the host maps
@@ -77,7 +80,12 @@ class GenUiColors {
   /// scheme already encodes light/dark brightness, so no separate brightness
   /// branch is needed here.
   factory GenUiColors.fromTheme(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    return GenUiColors.fromColorScheme(Theme.of(context).colorScheme);
+  }
+
+  /// Derives renderer roles from a Material [ColorScheme]. Useful when a host
+  /// creates a [GenUiTheme] alongside its [ThemeData].
+  factory GenUiColors.fromColorScheme(ColorScheme scheme) {
     return GenUiColors(
       accent: scheme.primary,
       accentSoft: scheme.secondary,
@@ -98,11 +106,308 @@ class GenUiColors {
     );
   }
 
+  GenUiColors copyWith({
+    Color? accent,
+    Color? accentSoft,
+    Color? accentGlow,
+    Color? onAccent,
+    Color? celadon,
+    Color? danger,
+    Color? surface,
+    Color? surfaceRaised,
+    Color? glassBorder,
+    Color? hairline,
+    Color? textPrimary,
+    Color? textSecondary,
+    Color? textTertiary,
+  }) => GenUiColors(
+    accent: accent ?? this.accent,
+    accentSoft: accentSoft ?? this.accentSoft,
+    accentGlow: accentGlow ?? this.accentGlow,
+    onAccent: onAccent ?? this.onAccent,
+    celadon: celadon ?? this.celadon,
+    danger: danger ?? this.danger,
+    surface: surface ?? this.surface,
+    surfaceRaised: surfaceRaised ?? this.surfaceRaised,
+    glassBorder: glassBorder ?? this.glassBorder,
+    hairline: hairline ?? this.hairline,
+    textPrimary: textPrimary ?? this.textPrimary,
+    textSecondary: textSecondary ?? this.textSecondary,
+    textTertiary: textTertiary ?? this.textTertiary,
+  );
+
+  static GenUiColors lerp(GenUiColors a, GenUiColors b, double t) =>
+      GenUiColors(
+        accent: Color.lerp(a.accent, b.accent, t)!,
+        accentSoft: Color.lerp(a.accentSoft, b.accentSoft, t)!,
+        accentGlow: Color.lerp(a.accentGlow, b.accentGlow, t)!,
+        onAccent: Color.lerp(a.onAccent, b.onAccent, t)!,
+        celadon: Color.lerp(a.celadon, b.celadon, t)!,
+        danger: Color.lerp(a.danger, b.danger, t)!,
+        surface: Color.lerp(a.surface, b.surface, t)!,
+        surfaceRaised: Color.lerp(a.surfaceRaised, b.surfaceRaised, t)!,
+        glassBorder: Color.lerp(a.glassBorder, b.glassBorder, t)!,
+        hairline: Color.lerp(a.hairline, b.hairline, t)!,
+        textPrimary: Color.lerp(a.textPrimary, b.textPrimary, t)!,
+        textSecondary: Color.lerp(a.textSecondary, b.textSecondary, t)!,
+        textTertiary: Color.lerp(a.textTertiary, b.textTertiary, t)!,
+      );
+
   /// The colours for [context]: a host override when provided, otherwise roles
   /// derived from the nearest Material theme.
   static GenUiColors of(BuildContext context) =>
-      genUiColorResolver?.call(context) ?? GenUiColors.fromTheme(context);
+      Theme.of(context).extension<GenUiTheme>()?.colors ??
+      // ignore: deprecated_member_use_from_same_package
+      genUiColorResolver?.call(context) ??
+      GenUiColors.fromTheme(context);
 }
+
+@immutable
+class GenUiSpacingTheme {
+  const GenUiSpacingTheme({
+    this.xs = 4,
+    this.sm = 8,
+    this.md = 12,
+    this.lg = 16,
+    this.xl = 24,
+    this.xxl = 32,
+  });
+
+  final double xs;
+  final double sm;
+  final double md;
+  final double lg;
+  final double xl;
+  final double xxl;
+
+  GenUiSpacingTheme copyWith({
+    double? xs,
+    double? sm,
+    double? md,
+    double? lg,
+    double? xl,
+    double? xxl,
+  }) => GenUiSpacingTheme(
+    xs: xs ?? this.xs,
+    sm: sm ?? this.sm,
+    md: md ?? this.md,
+    lg: lg ?? this.lg,
+    xl: xl ?? this.xl,
+    xxl: xxl ?? this.xxl,
+  );
+
+  static GenUiSpacingTheme lerp(
+    GenUiSpacingTheme a,
+    GenUiSpacingTheme b,
+    double t,
+  ) => GenUiSpacingTheme(
+    xs: _lerpDouble(a.xs, b.xs, t),
+    sm: _lerpDouble(a.sm, b.sm, t),
+    md: _lerpDouble(a.md, b.md, t),
+    lg: _lerpDouble(a.lg, b.lg, t),
+    xl: _lerpDouble(a.xl, b.xl, t),
+    xxl: _lerpDouble(a.xxl, b.xxl, t),
+  );
+}
+
+@immutable
+class GenUiRadiiTheme {
+  const GenUiRadiiTheme({
+    this.xs = 8,
+    this.sm = 12,
+    this.md = 16,
+    this.lg = 20,
+    this.xl = 28,
+    this.pill = 999,
+  });
+
+  final double xs;
+  final double sm;
+  final double md;
+  final double lg;
+  final double xl;
+  final double pill;
+
+  GenUiRadiiTheme copyWith({
+    double? xs,
+    double? sm,
+    double? md,
+    double? lg,
+    double? xl,
+    double? pill,
+  }) => GenUiRadiiTheme(
+    xs: xs ?? this.xs,
+    sm: sm ?? this.sm,
+    md: md ?? this.md,
+    lg: lg ?? this.lg,
+    xl: xl ?? this.xl,
+    pill: pill ?? this.pill,
+  );
+
+  static GenUiRadiiTheme lerp(GenUiRadiiTheme a, GenUiRadiiTheme b, double t) =>
+      GenUiRadiiTheme(
+        xs: _lerpDouble(a.xs, b.xs, t),
+        sm: _lerpDouble(a.sm, b.sm, t),
+        md: _lerpDouble(a.md, b.md, t),
+        lg: _lerpDouble(a.lg, b.lg, t),
+        xl: _lerpDouble(a.xl, b.xl, t),
+        pill: _lerpDouble(a.pill, b.pill, t),
+      );
+}
+
+@immutable
+class GenUiMotionTheme {
+  const GenUiMotionTheme({
+    this.quick = const Duration(milliseconds: 150),
+    this.standard = const Duration(milliseconds: 250),
+    this.slow = const Duration(milliseconds: 350),
+    this.curve = Curves.easeOutCubic,
+  });
+
+  final Duration quick;
+  final Duration standard;
+  final Duration slow;
+  final Curve curve;
+
+  GenUiMotionTheme copyWith({
+    Duration? quick,
+    Duration? standard,
+    Duration? slow,
+    Curve? curve,
+  }) => GenUiMotionTheme(
+    quick: quick ?? this.quick,
+    standard: standard ?? this.standard,
+    slow: slow ?? this.slow,
+    curve: curve ?? this.curve,
+  );
+
+  static GenUiMotionTheme lerp(
+    GenUiMotionTheme a,
+    GenUiMotionTheme b,
+    double t,
+  ) => GenUiMotionTheme(
+    quick: _lerpDuration(a.quick, b.quick, t),
+    standard: _lerpDuration(a.standard, b.standard, t),
+    slow: _lerpDuration(a.slow, b.slow, t),
+    curve: t < 0.5 ? a.curve : b.curve,
+  );
+}
+
+@immutable
+class GenUiFrameTheme {
+  const GenUiFrameTheme({
+    this.margin = const EdgeInsets.symmetric(vertical: 8),
+    this.padding = const EdgeInsets.all(16),
+    this.shadowOpacity = 0.06,
+    this.shadowBlur = 18,
+    this.shadowOffset = const Offset(0, 6),
+  });
+
+  final EdgeInsetsGeometry margin;
+  final EdgeInsetsGeometry padding;
+  final double shadowOpacity;
+  final double shadowBlur;
+  final Offset shadowOffset;
+
+  GenUiFrameTheme copyWith({
+    EdgeInsetsGeometry? margin,
+    EdgeInsetsGeometry? padding,
+    double? shadowOpacity,
+    double? shadowBlur,
+    Offset? shadowOffset,
+  }) => GenUiFrameTheme(
+    margin: margin ?? this.margin,
+    padding: padding ?? this.padding,
+    shadowOpacity: shadowOpacity ?? this.shadowOpacity,
+    shadowBlur: shadowBlur ?? this.shadowBlur,
+    shadowOffset: shadowOffset ?? this.shadowOffset,
+  );
+
+  static GenUiFrameTheme lerp(GenUiFrameTheme a, GenUiFrameTheme b, double t) =>
+      GenUiFrameTheme(
+        margin: EdgeInsetsGeometry.lerp(a.margin, b.margin, t)!,
+        padding: EdgeInsetsGeometry.lerp(a.padding, b.padding, t)!,
+        shadowOpacity: _lerpDouble(a.shadowOpacity, b.shadowOpacity, t),
+        shadowBlur: _lerpDouble(a.shadowBlur, b.shadowBlur, t),
+        shadowOffset: Offset.lerp(a.shadowOffset, b.shadowOffset, t)!,
+      );
+}
+
+/// Subtree-scoped design tokens for GenUI renderers. Hosts may install this in
+/// [ThemeData.extensions]; without one, renderers still derive colors from the
+/// nearest Material theme and use the package token defaults.
+@immutable
+class GenUiTheme extends ThemeExtension<GenUiTheme> {
+  const GenUiTheme({
+    required this.colors,
+    this.spacing = const GenUiSpacingTheme(),
+    this.radii = const GenUiRadiiTheme(),
+    this.motion = const GenUiMotionTheme(),
+    this.frames = const GenUiFrameTheme(),
+  });
+
+  const GenUiTheme.nocturne({
+    this.colors = GenUiColors.nocturne,
+    this.spacing = const GenUiSpacingTheme(),
+    this.radii = const GenUiRadiiTheme(),
+    this.motion = const GenUiMotionTheme(),
+    this.frames = const GenUiFrameTheme(),
+  });
+
+  factory GenUiTheme.fromColorScheme(ColorScheme scheme) =>
+      GenUiTheme(colors: GenUiColors.fromColorScheme(scheme));
+
+  final GenUiColors colors;
+  final GenUiSpacingTheme spacing;
+  final GenUiRadiiTheme radii;
+  final GenUiMotionTheme motion;
+  final GenUiFrameTheme frames;
+
+  static GenUiTheme of(BuildContext context) {
+    final extension = Theme.of(context).extension<GenUiTheme>();
+    if (extension != null) return extension;
+    // ignore: deprecated_member_use_from_same_package
+    final legacy = genUiColorResolver?.call(context);
+    return GenUiTheme(colors: legacy ?? GenUiColors.fromTheme(context));
+  }
+
+  @override
+  GenUiTheme copyWith({
+    GenUiColors? colors,
+    GenUiSpacingTheme? spacing,
+    GenUiRadiiTheme? radii,
+    GenUiMotionTheme? motion,
+    GenUiFrameTheme? frames,
+  }) => GenUiTheme(
+    colors: colors ?? this.colors,
+    spacing: spacing ?? this.spacing,
+    radii: radii ?? this.radii,
+    motion: motion ?? this.motion,
+    frames: frames ?? this.frames,
+  );
+
+  @override
+  GenUiTheme lerp(covariant GenUiTheme? other, double t) {
+    if (other == null) return this;
+    return GenUiTheme(
+      colors: GenUiColors.lerp(colors, other.colors, t),
+      spacing: GenUiSpacingTheme.lerp(spacing, other.spacing, t),
+      radii: GenUiRadiiTheme.lerp(radii, other.radii, t),
+      motion: GenUiMotionTheme.lerp(motion, other.motion, t),
+      frames: GenUiFrameTheme.lerp(frames, other.frames, t),
+    );
+  }
+}
+
+double _lerpDouble(double a, double b, double t) => a + (b - a) * t;
+
+Duration _lerpDuration(Duration a, Duration b, double t) => Duration(
+  microseconds: _lerpDouble(
+    a.inMicroseconds.toDouble(),
+    b.inMicroseconds.toDouble(),
+    t,
+  ).round(),
+);
 
 /// 4pt spacing scale (mirrors the host scale by value).
 abstract final class GenUiSpace {
@@ -128,7 +433,9 @@ abstract final class GenUiRadii {
 
 /// Motion durations for fades/reveals.
 abstract final class GenUiMotion {
-  static const Duration quick = Duration(milliseconds: 220);
+  static const Duration quick = Duration(milliseconds: 150);
+  static const Duration standard = Duration(milliseconds: 250);
+  static const Duration slow = Duration(milliseconds: 350);
 }
 
 /// iPhone-style continuous ("squircle") corners — continuous curvature that
@@ -183,6 +490,8 @@ class GenUiPressable extends StatefulWidget {
     this.haptic = true,
     this.behavior = HitTestBehavior.opaque,
     this.semanticLabel,
+    this.selected,
+    this.checked,
   });
 
   final Widget child;
@@ -196,6 +505,10 @@ class GenUiPressable extends StatefulWidget {
   /// [child] is icon-only, or when its text is an unsuitable spoken label
   /// (e.g. a glyph like `×`).
   final String? semanticLabel;
+
+  /// Exposes selection/check state without relying on color alone.
+  final bool? selected;
+  final bool? checked;
 
   @override
   State<GenUiPressable> createState() => _GenUiPressableState();
@@ -212,10 +525,17 @@ class _GenUiPressableState extends State<GenUiPressable>
 
   bool get _reduceMotion =>
       MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+  bool _focused = false;
 
   void _setPressed(bool pressed) {
     if (_reduceMotion) return;
     _c.animateWith(SpringSimulation(_snappy, _c.value, pressed ? 1 : 0, 0));
+  }
+
+  void _activate({bool haptic = true}) {
+    if (widget.onTap == null) return;
+    if (haptic && widget.haptic) HapticFeedback.lightImpact();
+    widget.onTap!.call();
   }
 
   @override
@@ -227,17 +547,13 @@ class _GenUiPressableState extends State<GenUiPressable>
   @override
   Widget build(BuildContext context) {
     final enabled = widget.onTap != null || widget.onLongPress != null;
+    final theme = GenUiTheme.of(context);
     final gesture = GestureDetector(
       behavior: widget.behavior,
       onTapDown: enabled ? (_) => _setPressed(true) : null,
       onTapUp: enabled ? (_) => _setPressed(false) : null,
       onTapCancel: enabled ? () => _setPressed(false) : null,
-      onTap: enabled
-          ? () {
-              if (widget.haptic) HapticFeedback.lightImpact();
-              widget.onTap?.call();
-            }
-          : null,
+      onTap: widget.onTap == null ? null : _activate,
       onLongPress: widget.onLongPress == null
           ? null
           : () {
@@ -245,16 +561,53 @@ class _GenUiPressableState extends State<GenUiPressable>
               widget.onLongPress!.call();
             },
       child: AnimatedOpacity(
-        duration: GenUiMotion.quick,
+        duration: theme.motion.quick,
         opacity: enabled ? 1 : 0.55,
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (context, child) => Transform.scale(
-            scale: 1 - (1 - widget.scale) * _c.value,
-            child: child,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          child: AnimatedBuilder(
+            animation: _c,
+            builder: (context, child) => Transform.scale(
+              scale: 1 - (1 - widget.scale) * _c.value,
+              child: child,
+            ),
+            child: widget.child,
           ),
-          child: widget.child,
         ),
+      ),
+    );
+
+    final focusable = FocusableActionDetector(
+      enabled: enabled,
+      mouseCursor: enabled
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      onShowFocusHighlight: (focused) {
+        if (_focused != focused) setState(() => _focused = focused);
+      },
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+      },
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            _activate(haptic: false);
+            return null;
+          },
+        ),
+      },
+      child: AnimatedContainer(
+        duration: theme.motion.quick,
+        curve: theme.motion.curve,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: _focused ? theme.colors.accent : Colors.transparent,
+            width: 2,
+          ),
+          borderRadius: GenUiShape.radius(theme.radii.sm),
+        ),
+        child: gesture,
       ),
     );
 
@@ -262,13 +615,21 @@ class _GenUiPressableState extends State<GenUiPressable>
       return Semantics(
         button: true,
         enabled: enabled,
+        selected: widget.selected,
+        checked: widget.checked,
         label: widget.semanticLabel,
         excludeSemantics: true,
-        child: gesture,
+        child: focusable,
       );
     }
     return MergeSemantics(
-      child: Semantics(button: true, enabled: enabled, child: gesture),
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        selected: widget.selected,
+        checked: widget.checked,
+        child: focusable,
+      ),
     );
   }
 }

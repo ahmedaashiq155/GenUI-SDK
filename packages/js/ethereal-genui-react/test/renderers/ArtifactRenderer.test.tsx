@@ -14,14 +14,16 @@ describe('ArtifactRenderer', () => {
     expect(screen.getByText('my_script.py')).toBeDefined()
   })
 
-  it('renders the kind subtitle with tap to open text', () => {
+  it('does not advertise opening when no host handler exists', () => {
     render(
       <ArtifactRenderer
         spec={{ type: 'artifact', kind: 'markdown', title: 'doc.md' }}
         onSend={vi.fn()}
       />
     )
-    expect(screen.getByText(/markdown.*tap to open/i)).toBeDefined()
+    expect(screen.getByText('markdown')).toBeDefined()
+    expect(screen.queryByText(/tap to open/i)).toBeNull()
+    expect(screen.queryByRole('button')).toBeNull()
   })
 
   it('defaults title to Artifact when not provided', () => {
@@ -43,6 +45,8 @@ describe('ArtifactRenderer', () => {
         <ArtifactRenderer spec={spec} onSend={vi.fn()} />
       </GenUiProvider>
     )
+    expect(screen.getByText(/code.*tap to open/i)).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Open test.py' })).toBeDefined()
     fireEvent.click(screen.getByText('test.py'))
     expect(openArtifact).toHaveBeenCalledWith(spec)
   })

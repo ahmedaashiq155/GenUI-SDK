@@ -1,4 +1,5 @@
 import React from 'react'
+import { GenUiEmptyState } from '../GenUiEmptyState.js'
 
 export interface ChartRendererProps {
   spec: Record<string, unknown>
@@ -229,7 +230,9 @@ export function ChartRenderer({ spec, className, style }: ChartRendererProps) {
       return { label: String(d.label ?? ''), value: Number.isFinite(n) && n > 0 ? n : 0 }
     })
 
-  if (data.length === 0) return null
+  if (data.length === 0) {
+    return <GenUiEmptyState label="No chart data" icon="▥" className={className} style={style} />
+  }
 
   const chartType = (spec.chart ?? spec.variant ?? 'bar') as string
   const title = spec.title as string | undefined

@@ -1,5 +1,6 @@
 import React from 'react'
 import { useOptionalGenUiActions } from '../../provider.js'
+import { Pressable } from '../Pressable.js'
 
 export interface ArtifactRendererProps {
   spec: Record<string, unknown>
@@ -23,29 +24,26 @@ export function ArtifactRenderer({ spec, className, style }: ArtifactRendererPro
   const kind    = String(spec.kind ?? '')
   const title   = String(spec.title ?? 'Artifact')
   const icon    = kindIcon(kind)
+  const canOpen = actions?.openArtifact != null
 
-  function handleClick() {
-    actions?.openArtifact?.(spec)
+  const cardStyle: React.CSSProperties = {
+    margin: 'var(--ethereal-space-sm) 0',
+    padding: 'var(--ethereal-space-md)',
+    borderRadius: 'var(--ethereal-radius-lg)',
+    border: '1px solid var(--ethereal-hairline)',
+    backgroundColor: 'var(--ethereal-surface)',
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 'var(--ethereal-space-md)',
+    width: '100%',
+    boxSizing: 'border-box',
+    cursor: canOpen ? 'pointer' : 'default',
+    ...style,
   }
 
-  return (
-    <div
-      className={className}
-      onClick={handleClick}
-      style={{
-        margin: 'var(--ethereal-space-sm) 0',
-        padding: 'var(--ethereal-space-md)',
-        borderRadius: 'var(--ethereal-radius-lg)',
-        border: '1px solid var(--ethereal-hairline)',
-        backgroundColor: 'var(--ethereal-surface)',
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 'var(--ethereal-space-md)',
-        cursor: 'pointer',
-        ...style,
-      }}
-    >
+  const content = (
+    <>
       {/* Icon box */}
       <div style={{
         width: 40,
@@ -79,13 +77,30 @@ export function ArtifactRenderer({ spec, className, style }: ArtifactRendererPro
           color: 'var(--ethereal-text-tertiary)',
           marginTop: 2,
         }}>
-          {kind} · tap to open
+          {canOpen ? `${kind} · tap to open` : kind}
         </div>
       </div>
       {/* Trailing icon */}
-      <span style={{ color: 'var(--ethereal-text-tertiary)', fontSize: 16 }}>
-        ↗
-      </span>
-    </div>
+      {canOpen && (
+        <span aria-hidden="true" style={{ color: 'var(--ethereal-text-tertiary)', fontSize: 16 }}>
+          ↗
+        </span>
+      )}
+    </>
   )
+
+  if (canOpen) {
+    return (
+      <Pressable
+        className={className}
+        onPress={() => actions.openArtifact?.(spec)}
+        aria-label={`Open ${title}`}
+        style={cardStyle}
+      >
+        {content}
+      </Pressable>
+    )
+  }
+
+  return <div className={className} style={cardStyle}>{content}</div>
 }

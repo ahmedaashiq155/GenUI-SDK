@@ -3,10 +3,12 @@ import React, {
   useSyncExternalStore, useState, useCallback,
 } from 'react'
 import { GenUiStore, StorageAdapter } from './store.js'
+import type { GenUiMessageInput } from './multimodal.js'
 
 /** Actions available to the UI. */
 export interface GenUiActions {
   sendMessage: (text: string) => void
+  sendInput?: (input: GenUiMessageInput) => void | Promise<void>
   setAccent?: ((color: string | null) => void) | undefined
   setShortcuts?: ((items: string[] | null) => void) | undefined
   openArtifact?: ((artifact: Record<string, unknown> | null) => void) | undefined

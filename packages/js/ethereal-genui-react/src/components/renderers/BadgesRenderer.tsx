@@ -1,4 +1,5 @@
 import React from 'react'
+import { GenUiEmptyState } from '../GenUiEmptyState.js'
 
 export interface BadgesRendererProps {
   spec: Record<string, unknown>
@@ -9,6 +10,10 @@ export interface BadgesRendererProps {
 
 export function BadgesRenderer({ spec, className, style }: BadgesRendererProps) {
   const items = (spec.items as unknown[] | undefined ?? []).map(String)
+
+  if (items.length === 0) {
+    return <GenUiEmptyState label="No badges" icon="◇" className={className} style={style} />
+  }
 
   return (
     <div

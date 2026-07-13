@@ -3,6 +3,10 @@ import 'package:ethereal_genui_core/ethereal_genui_core.dart';
 
 import 'genui_theme.dart';
 import 'genui_actions.dart';
+import 'genui_common.dart';
+import 'genui_localizations.dart';
+import 'genui_input.dart';
+import 'genui_devtools.dart';
 import 'genui_registry.dart';
 
 /// Maximum nesting depth for a single spec tree. A malicious or buggy model
@@ -64,13 +68,29 @@ class _GenUiDispatchBoundaryState extends State<_GenUiDispatchBoundary> {
   void _sendMessage(String text) {
     if (!widget.actions.enabled || _dispatched) return;
     setState(() => _dispatched = true);
+    GenUiDebugScope.maybeOf(
+      context,
+    )?.record(GenUiDebugEventType.dispatch, message: text);
     widget.actions.sendMessage(text);
+  }
+
+  Future<void> _sendInput(GenUiMessageInput input) async {
+    final send = widget.actions.sendInput;
+    if (send == null || !widget.actions.enabled || _dispatched) return;
+    setState(() => _dispatched = true);
+    GenUiDebugScope.maybeOf(context)?.record(
+      GenUiDebugEventType.input,
+      message: input.text,
+      data: {'attachments': input.attachments.length},
+    );
+    await send(input);
   }
 
   @override
   Widget build(BuildContext context) {
     final actions = GenUiActions(
       sendMessage: _sendMessage,
+      sendInput: widget.actions.sendInput == null ? null : _sendInput,
       setAccent: widget.actions.setAccent,
       setShortcuts: widget.actions.setShortcuts,
       openArtifact: widget.actions.openArtifact,
@@ -112,7 +132,19 @@ Widget _buildGenUiSpec(
     return genUiPlaceholder(context, malformed: true);
   }
   final type = (spec['type'] ?? '').toString();
+  GenUiDebugScope.maybeOf(context)?.record(
+    GenUiDebugEventType.render,
+    blockType: type,
+    data: {'depth': depth},
+  );
   final builder = defaultGenUiRegistry.builderFor(type);
+  if (builder == null) {
+    GenUiDebugScope.maybeOf(context)?.record(
+      GenUiDebugEventType.error,
+      blockType: type,
+      message: 'Unsupported block',
+    );
+  }
   final child = builder != null
       ? builder(context, spec, actions)
       : genUiPlaceholder(context, type: type);
@@ -129,29 +161,31 @@ Widget genUiPlaceholder(
   String? type,
   bool malformed = false,
 }) {
-  final colors = GenUiColors.of(context);
+  final theme = GenUiTheme.of(context);
+  final colors = theme.colors;
+  final strings = GenUiLocalizations.of(context);
   final label = malformed
-      ? "Couldn't render this block"
+      ? strings.text(GenUiStringKey.renderError, "Couldn't render this block")
       : (type != null && type.isNotEmpty)
-      ? 'Unsupported block: $type'
-      : 'Preparing…';
+      ? strings.text(
+          GenUiStringKey.unsupportedBlock,
+          'Unsupported block: {type}',
+          replacements: {'type': type},
+        )
+      : strings.text(GenUiStringKey.preparing, 'Preparing…');
   final iconColor = malformed ? colors.danger : colors.textTertiary;
-  return Container(
-    margin: const EdgeInsets.symmetric(vertical: GenUiSpace.sm),
-    padding: const EdgeInsets.symmetric(
-      horizontal: GenUiSpace.md,
-      vertical: GenUiSpace.sm,
+  return GenUi.frame(
+    context,
+    variant: GenUiFrameVariant.flat,
+    margin: EdgeInsets.symmetric(vertical: theme.spacing.sm),
+    padding: EdgeInsets.symmetric(
+      horizontal: theme.spacing.md,
+      vertical: theme.spacing.sm,
     ),
-    decoration: ShapeDecoration(
-      color: colors.surface.withValues(alpha: 0.5),
-      shape: GenUiShape.shape(
-        GenUiRadii.md,
-        side: BorderSide(
-          color: malformed
-              ? colors.danger.withValues(alpha: 0.3)
-              : colors.hairline,
-        ),
-      ),
+    radius: theme.radii.md,
+    backgroundColor: colors.surface.withValues(alpha: 0.5),
+    border: BorderSide(
+      color: malformed ? colors.danger.withValues(alpha: 0.3) : colors.hairline,
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -161,9 +195,14 @@ Widget genUiPlaceholder(
           size: 15,
           color: iconColor,
         ),
-        const SizedBox(width: GenUiSpace.sm),
+        SizedBox(width: theme.spacing.sm),
         Flexible(
-          child: Text(label, style: TextStyle(color: iconColor, fontSize: 13)),
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: iconColor),
+          ),
         ),
       ],
     ),

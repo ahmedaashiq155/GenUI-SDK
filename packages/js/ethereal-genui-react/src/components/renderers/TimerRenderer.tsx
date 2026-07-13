@@ -14,11 +14,19 @@ function formatTime(seconds: number): string {
 }
 
 export function TimerRenderer({ spec, className, style }: TimerRendererProps) {
-  const total = typeof spec.seconds === 'number' ? spec.seconds : 60
+  const rawTotal = typeof spec.seconds === 'number' && Number.isFinite(spec.seconds)
+    ? Math.round(spec.seconds)
+    : 60
+  const total = Math.min(Math.max(rawTotal, 0), 86400)
   const label = spec.label as string | undefined
 
   const [remaining, setRemaining] = useState(() => total)
   const [running, setRunning] = useState(false)
+
+  useEffect(() => {
+    setRunning(false)
+    setRemaining(total)
+  }, [total])
 
   useEffect(() => {
     if (!running) return

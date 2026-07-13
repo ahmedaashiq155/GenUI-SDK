@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import '../genui_theme.dart';
 import '../genui_actions.dart';
 import '../genui_block.dart';
+import '../genui_common.dart';
+import '../genui_localizations.dart';
 import '../genui_state.dart';
 
 List<Map<String, dynamic>> _children(dynamic v) =>
-    (v is List ? v : const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
+    (v is List ? v : const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .toList();
 
 /// {"type":"when","key":"view","equals":"new","child":{…}} — renders its child
 /// only when the scoped state[key] matches `equals` (or is truthy when `equals`
@@ -23,7 +27,10 @@ class WhenRenderer extends StatelessWidget {
     final value = GenUiStateScope.maybeOf(context)?.valueFor(key);
     final matches = spec.containsKey('equals')
         ? value == spec['equals']
-        : (value != null && value != false && value != 0 && '$value'.isNotEmpty);
+        : (value != null &&
+              value != false &&
+              value != 0 &&
+              '$value'.isNotEmpty);
     if (!matches) return const SizedBox.shrink();
     final child = spec['child'];
     if (child is Map<String, dynamic>) {
@@ -46,17 +53,25 @@ class SectionRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final children = _children(spec['children']);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (spec['title'] != null)
-          Padding(
-            padding: const EdgeInsets.only(top: GenUiSpace.sm, bottom: GenUiSpace.xs),
-            child: Text('${spec['title']}',
-                style: Theme.of(context).textTheme.titleMedium),
-          ),
-        for (final c in children) buildGenUiSpec(context, c, actions),
-      ],
+    final theme = GenUiTheme.of(context);
+    return GenUi.frame(
+      context,
+      variant: GenUiFrameVariant.flat,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (spec['title'] != null)
+            Padding(
+              padding: EdgeInsetsDirectional.only(bottom: theme.spacing.sm),
+              child: Text(
+                '${spec['title']}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          for (final c in children)
+            GenUiFrameScope(child: buildGenUiSpec(context, c, actions)),
+        ],
+      ),
     );
   }
 }
@@ -73,8 +88,11 @@ class GridRenderer extends StatelessWidget {
     // Clamp to a sane range: a non-positive column count divides by zero /
     // goes negative, and an absurdly large one makes gap*(cols-1) exceed the
     // available width — both yield a negative SizedBox width (layout assert).
-    final cols = ((spec['columns'] is num) ? (spec['columns'] as num).toInt() : 2)
-        .clamp(1, 12);
+    final cols =
+        ((spec['columns'] is num) ? (spec['columns'] as num).toInt() : 2).clamp(
+          1,
+          12,
+        );
     return LayoutBuilder(
       builder: (context, constraints) {
         const gap = GenUiSpace.sm;
@@ -85,7 +103,10 @@ class GridRenderer extends StatelessWidget {
           runSpacing: gap,
           children: [
             for (final c in children)
-              SizedBox(width: width, child: buildGenUiSpec(context, c, actions)),
+              SizedBox(
+                width: width,
+                child: buildGenUiSpec(context, c, actions),
+              ),
           ],
         );
       },
@@ -116,7 +137,11 @@ class ColumnsRenderer extends StatelessWidget {
 
 /// {"type":"accordion","items":[{"title":"…","content":{…} | "text":"…"}]}
 class AccordionRenderer extends StatefulWidget {
-  const AccordionRenderer({super.key, required this.spec, required this.actions});
+  const AccordionRenderer({
+    super.key,
+    required this.spec,
+    required this.actions,
+  });
   final Map<String, dynamic> spec;
   final GenUiActions actions;
 
@@ -129,29 +154,34 @@ class _AccordionRendererState extends State<AccordionRenderer> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
     final items = _children(widget.spec['items']);
     return Column(
       children: [
         for (var i = 0; i < items.length; i++)
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 3),
-            decoration: ShapeDecoration(
-              color: colors.surface.withValues(alpha: 0.5),
-              shape: GenUiShape.shape(GenUiRadii.md, side: BorderSide(color: colors.hairline)),
-            ),
+          GenUi.frame(
+            context,
+            variant: GenUiFrameVariant.flat,
+            margin: EdgeInsets.symmetric(vertical: theme.spacing.xs),
+            padding: EdgeInsets.zero,
+            radius: theme.radii.md,
+            backgroundColor: colors.surface.withValues(alpha: 0.5),
             child: Column(
               children: [
                 GenUiPressable(
-                  onTap: () => setState(() =>
-                      _open.contains(i) ? _open.remove(i) : _open.add(i)),
+                  onTap: () => setState(
+                    () => _open.contains(i) ? _open.remove(i) : _open.add(i),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(GenUiSpace.md),
+                    padding: EdgeInsets.all(theme.spacing.md),
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text('${items[i]['title'] ?? ''}',
-                              style: Theme.of(context).textTheme.bodyLarge),
+                          child: Text(
+                            '${items[i]['title'] ?? ''}',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
                         ),
                         Icon(
                           _open.contains(i)
@@ -163,11 +193,22 @@ class _AccordionRendererState extends State<AccordionRenderer> {
                     ),
                   ),
                 ),
-                if (_open.contains(i))
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(GenUiSpace.md, 0, GenUiSpace.md, GenUiSpace.md),
-                    child: _body(context, items[i]),
-                  ),
+                AnimatedSize(
+                  duration: theme.motion.standard,
+                  curve: theme.motion.curve,
+                  alignment: AlignmentDirectional.topStart,
+                  child: _open.contains(i)
+                      ? Padding(
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                            theme.spacing.md,
+                            0,
+                            theme.spacing.md,
+                            theme.spacing.md,
+                          ),
+                          child: _body(context, items[i]),
+                        )
+                      : const SizedBox.shrink(),
+                ),
               ],
             ),
           ),
@@ -178,12 +219,16 @@ class _AccordionRendererState extends State<AccordionRenderer> {
   Widget _body(BuildContext context, Map<String, dynamic> item) {
     final content = item['content'];
     if (content is Map<String, dynamic>) {
-      return buildGenUiSpec(context, content, widget.actions);
+      return GenUiFrameScope(
+        child: buildGenUiSpec(context, content, widget.actions),
+      );
     }
     return Align(
-      alignment: Alignment.centerLeft,
-      child: Text('${item['text'] ?? ''}',
-          style: Theme.of(context).textTheme.bodyMedium),
+      alignment: AlignmentDirectional.centerStart,
+      child: Text(
+        '${item['text'] ?? ''}',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
     );
   }
 }
@@ -203,57 +248,83 @@ class _TabsRendererState extends State<TabsRenderer> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
+    final text = Theme.of(context).textTheme;
     final tabs = _children(widget.spec['tabs']);
-    if (tabs.isEmpty) return const SizedBox.shrink();
+    if (tabs.isEmpty) {
+      return GenUi.emptyState(
+        context,
+        GenUiLocalizations.of(context).text(GenUiStringKey.noTabs, 'No tabs'),
+        icon: Icons.tab_outlined,
+      );
+    }
     final i = _index.clamp(0, tabs.length - 1);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (var t = 0; t < tabs.length; t++)
-                GenUiPressable(
-                  onTap: () => setState(() => _index = t),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: GenUiSpace.sm),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: GenUiSpace.md, vertical: GenUiSpace.sm),
-                    decoration: ShapeDecoration(
-                      color: t == i
-                          ? colors.accent.withValues(alpha: 0.16)
-                          : Colors.transparent,
-                      shape: GenUiShape.shape(GenUiRadii.pill,
+    return GenUi.frame(
+      context,
+      variant: GenUiFrameVariant.flat,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var t = 0; t < tabs.length; t++)
+                  GenUiPressable(
+                    selected: t == i,
+                    onTap: () => setState(() => _index = t),
+                    child: Container(
+                      margin: EdgeInsetsDirectional.only(end: theme.spacing.sm),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: theme.spacing.md,
+                        vertical: theme.spacing.sm,
+                      ),
+                      decoration: ShapeDecoration(
+                        color: t == i
+                            ? colors.accent.withValues(alpha: 0.16)
+                            : Colors.transparent,
+                        shape: GenUiShape.shape(
+                          theme.radii.pill,
                           side: BorderSide(
-                              color: t == i
-                                  ? colors.accent.withValues(alpha: 0.4)
-                                  : colors.hairline)),
+                            color: t == i
+                                ? colors.accent.withValues(alpha: 0.4)
+                                : colors.hairline,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        '${tabs[t]['label'] ?? 'Tab ${t + 1}'}',
+                        style: text.labelMedium?.copyWith(
+                          color: t == i ? colors.accent : colors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                    child: Text('${tabs[t]['label'] ?? 'Tab ${t + 1}'}',
-                        style: TextStyle(
-                            color: t == i ? colors.accent : colors.textSecondary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: GenUiSpace.sm),
-        Builder(builder: (context) {
-          final content = tabs[i]['content'];
-          if (content is Map<String, dynamic>) {
-            return buildGenUiSpec(context, content, widget.actions);
-          }
-          return Align(
-            alignment: Alignment.centerLeft,
-            child: Text('${tabs[i]['text'] ?? ''}',
-                style: Theme.of(context).textTheme.bodyMedium),
-          );
-        }),
-      ],
+          SizedBox(height: theme.spacing.sm),
+          Builder(
+            builder: (context) {
+              final content = tabs[i]['content'];
+              if (content is Map<String, dynamic>) {
+                return GenUiFrameScope(
+                  child: buildGenUiSpec(context, content, widget.actions),
+                );
+              }
+              return Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  '${tabs[i]['text'] ?? ''}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

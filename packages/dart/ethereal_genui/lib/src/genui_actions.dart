@@ -1,10 +1,13 @@
 import 'package:flutter/widgets.dart';
 
+import 'genui_input.dart';
+
 /// Callbacks every generative-UI renderer can use to act on the app.
 @immutable
 class GenUiActions {
   const GenUiActions({
     required this.sendMessage,
+    this.sendInput,
     this.setAccent,
     this.setShortcuts,
     this.openArtifact,
@@ -13,6 +16,10 @@ class GenUiActions {
 
   /// Send [text] as the next user turn (choices/actions/forms/etc.).
   final void Function(String text) sendMessage;
+
+  /// Optional typed multimodal sender. The package never reads/uploads media;
+  /// hosts own permission, scanning, storage and transport policy.
+  final GenUiInputSender? sendInput;
 
   /// Apply a per-conversation accent (a `theme` directive); hex like "#8B93FF".
   final void Function(String hex)? setAccent;

@@ -10,7 +10,7 @@
 library;
 
 /// Bumped when the block schema changes in a way models/clients should notice.
-const genUiSchemaVersion = 2;
+const genUiSchemaVersion = 4;
 
 /// Editorial grouping — mirrors how the catalogue reads to the model.
 enum GenUiCategory {
@@ -86,14 +86,20 @@ const List<GenUiBlockSchema> genUiCatalog = [
     type: 'choices',
     category: GenUiCategory.interactive,
     example: '{"type":"choices","title":"optional","options":["A","B"]}',
-    fields: [GenUiField('title', 'string'), GenUiField('options', 'list', required: true)],
+    fields: [
+      GenUiField('title', 'string'),
+      GenUiField('options', 'list', required: true),
+    ],
   ),
   GenUiBlockSchema(
     type: 'actions',
     category: GenUiCategory.interactive,
     example:
         '{"type":"actions","actions":[{"label":"Yes","send":"Yes, do it","primary":true},{"label":"No","send":"No"}]}',
-    fields: [GenUiField('title', 'string'), GenUiField('actions', 'list', required: true)],
+    fields: [
+      GenUiField('title', 'string'),
+      GenUiField('actions', 'list', required: true),
+    ],
   ),
   GenUiBlockSchema(
     type: 'confirm',
@@ -109,7 +115,8 @@ const List<GenUiBlockSchema> genUiCatalog = [
   GenUiBlockSchema(
     type: 'suggestions',
     category: GenUiCategory.interactive,
-    example: '{"type":"suggestions","options":["Tell me more","Give an example"]}',
+    example:
+        '{"type":"suggestions","options":["Tell me more","Give an example"]}',
     fields: [GenUiField('options', 'list', required: true)],
   ),
   GenUiBlockSchema(
@@ -155,7 +162,7 @@ const List<GenUiBlockSchema> genUiCatalog = [
     type: 'form',
     category: GenUiCategory.interactive,
     example:
-        '{"type":"form","title":"Booking","fields":[{"key":"name","label":"Name","type":"text"},{"key":"guests","label":"Guests","type":"number"},{"key":"seat","label":"Seating","type":"select","options":["Indoor","Outdoor"]},{"key":"vip","label":"VIP","type":"toggle"}],"submitLabel":"Submit"}',
+        '{"type":"form","title":"Booking","fields":[{"key":"name","label":"Name","type":"text","required":true},{"key":"guests","label":"Guests","type":"number"},{"key":"seat","label":"Seating","type":"select","options":["Indoor","Outdoor"],"required":true},{"key":"vip","label":"VIP","type":"toggle"}],"submitLabel":"Submit"}',
     fields: [
       GenUiField('title', 'string'),
       GenUiField('fields', 'list', required: true),
@@ -179,9 +186,14 @@ const List<GenUiBlockSchema> genUiCatalog = [
   GenUiBlockSchema(
     type: 'callout',
     category: GenUiCategory.display,
-    example: '{"type":"callout","style":"info|warn|success","title":"...","text":"..."}',
+    example:
+        '{"type":"callout","style":"info|warn|success","title":"...","text":"..."}',
     fields: [
-      GenUiField('style', 'enum', enumValues: ['info', 'warn', 'warning', 'success']),
+      GenUiField(
+        'style',
+        'enum',
+        enumValues: ['info', 'warn', 'warning', 'success'],
+      ),
       GenUiField('title', 'string'),
       GenUiField('text', 'string'),
     ],
@@ -190,13 +202,18 @@ const List<GenUiBlockSchema> genUiCatalog = [
     type: 'stat',
     aliases: ['kpi'],
     category: GenUiCategory.display,
-    example: '{"type":"stat","title":"...","stats":[{"label":"Users","value":"1.2k"}]}',
-    fields: [GenUiField('title', 'string'), GenUiField('stats', 'list', required: true)],
+    example:
+        '{"type":"stat","title":"...","stats":[{"label":"Users","value":"1.2k"}]}',
+    fields: [
+      GenUiField('title', 'string'),
+      GenUiField('stats', 'list', required: true),
+    ],
   ),
   GenUiBlockSchema(
     type: 'table',
     category: GenUiCategory.display,
-    example: '{"type":"table","columns":["A","B"],"rows":[["1","2"],["3","4"]]}',
+    example:
+        '{"type":"table","columns":["A","B"],"rows":[["1","2"],["3","4"]]}',
     fields: [
       GenUiField('columns', 'list', required: true),
       GenUiField('rows', 'list', required: true),
@@ -243,12 +260,17 @@ const List<GenUiBlockSchema> genUiCatalog = [
     type: 'poll',
     category: GenUiCategory.moreInteractive,
     example: '{"type":"poll","options":[{"label":"A","votes":3}]}',
-    fields: [GenUiField('options', 'list', required: true), GenUiField('title', 'string'), _id],
+    fields: [
+      GenUiField('options', 'list', required: true),
+      GenUiField('title', 'string'),
+      _id,
+    ],
   ),
   GenUiBlockSchema(
     type: 'quiz',
     category: GenUiCategory.moreInteractive,
-    example: '{"type":"quiz","question":"…","options":["…"],"answer":1,"explanation":"…"}',
+    example:
+        '{"type":"quiz","question":"…","options":["…"],"answer":1,"explanation":"…"}',
     fields: [
       GenUiField('question', 'string', required: true),
       GenUiField('options', 'list', required: true),
@@ -276,14 +298,18 @@ const List<GenUiBlockSchema> genUiCatalog = [
     type: 'timeline',
     aliases: ['steps'],
     category: GenUiCategory.moreDisplay,
-    example: '{"type":"timeline","items":[{"title":"…","subtitle":"…","done":true}]}',
+    example:
+        '{"type":"timeline","items":[{"title":"…","subtitle":"…","done":true}]}',
     fields: [GenUiField('items', 'list', required: true)],
   ),
   GenUiBlockSchema(
     type: 'progress',
     category: GenUiCategory.moreDisplay,
     example: '{"type":"progress","label":"…","value":0.6}',
-    fields: [GenUiField('label', 'string'), GenUiField('value', 'num', required: true)],
+    fields: [
+      GenUiField('label', 'string'),
+      GenUiField('value', 'num', required: true),
+    ],
   ),
   GenUiBlockSchema(
     type: 'badges',
@@ -295,8 +321,11 @@ const List<GenUiBlockSchema> genUiCatalog = [
   GenUiBlockSchema(
     type: 'gallery',
     category: GenUiCategory.moreDisplay,
-    example: '{"type":"gallery","images":["https://…"]}',
-    fields: [GenUiField('images', 'list', required: true)],
+    example: '{"type":"gallery","images":["https://…"],"alt":["Description"]}',
+    fields: [
+      GenUiField('images', 'list', required: true),
+      GenUiField('alt', 'list'),
+    ],
   ),
   GenUiBlockSchema(
     type: 'divider',
@@ -315,7 +344,10 @@ const List<GenUiBlockSchema> genUiCatalog = [
     category: GenUiCategory.miniTools,
     example:
         '{"type":"converter","title":"Length","units":[{"label":"m","factor":1},{"label":"km","factor":1000}]}',
-    fields: [GenUiField('title', 'string'), GenUiField('units', 'list', required: true)],
+    fields: [
+      GenUiField('title', 'string'),
+      GenUiField('units', 'list', required: true),
+    ],
   ),
   GenUiBlockSchema(
     type: 'timer',
@@ -330,14 +362,20 @@ const List<GenUiBlockSchema> genUiCatalog = [
     category: GenUiCategory.layout,
     childrenAllowed: true,
     example: '{"type":"section","children":[ {…}, {…} ]}',
-    fields: [GenUiField('children', 'list', required: true), GenUiField('title', 'string')],
+    fields: [
+      GenUiField('children', 'list', required: true),
+      GenUiField('title', 'string'),
+    ],
   ),
   GenUiBlockSchema(
     type: 'grid',
     category: GenUiCategory.layout,
     childrenAllowed: true,
     example: '{"type":"grid","columns":2,"children":[ {…}, {…} ]}',
-    fields: [GenUiField('children', 'list', required: true), GenUiField('columns', 'int')],
+    fields: [
+      GenUiField('children', 'list', required: true),
+      GenUiField('columns', 'int'),
+    ],
   ),
   GenUiBlockSchema(
     type: 'columns',
@@ -376,6 +414,34 @@ const List<GenUiBlockSchema> genUiCatalog = [
       GenUiField('children', 'list'),
     ],
   ),
+  GenUiBlockSchema(
+    type: 'animate',
+    category: GenUiCategory.layout,
+    example:
+        '{"type":"animate","effect":"fade|scale|slideUp|slideDown|slideStart|slideEnd|pulse","duration":250,"delay":0,"repeat":false,"child":{…}}',
+    note:
+        'reduce-motion-aware presentation wrapper; use repeat only for meaningful status/emphasis, never decoration',
+    fields: [
+      GenUiField(
+        'effect',
+        'enum',
+        enumValues: [
+          'fade',
+          'scale',
+          'slideUp',
+          'slideDown',
+          'slideStart',
+          'slideEnd',
+          'pulse',
+        ],
+      ),
+      GenUiField('duration', 'int'),
+      GenUiField('delay', 'int'),
+      GenUiField('repeat', 'bool'),
+      GenUiField('child', 'map', required: true),
+    ],
+    childrenAllowed: true,
+  ),
 
   // ── Freeform primitives ─────────────────────────────────────────────────
   GenUiBlockSchema(
@@ -402,7 +468,8 @@ const List<GenUiBlockSchema> genUiCatalog = [
     type: 'row',
     category: GenUiCategory.primitives,
     childrenAllowed: true,
-    example: '{"type":"row","align":"between","cross":"center","gap":8,"expand":false,"children":[ {…} ]}',
+    example:
+        '{"type":"row","align":"between","cross":"center","gap":8,"expand":false,"children":[ {…} ]}',
     fields: [
       GenUiField('children', 'list'),
       GenUiField('align', 'string'),
@@ -432,7 +499,8 @@ const List<GenUiBlockSchema> genUiCatalog = [
   GenUiBlockSchema(
     type: 'text',
     category: GenUiCategory.primitives,
-    example: '{"type":"text","text":"Title","size":20,"weight":"bold","color":"#ECEEF2","align":"center"}',
+    example:
+        '{"type":"text","text":"Title","size":20,"weight":"bold","color":"#ECEEF2","align":"center"}',
     fields: [
       GenUiField('text', 'string', required: true),
       GenUiField('size', 'num'),
@@ -456,7 +524,8 @@ const List<GenUiBlockSchema> genUiCatalog = [
   GenUiBlockSchema(
     type: 'button',
     category: GenUiCategory.primitives,
-    example: '{"type":"button","label":"Play","send":"play","style":"primary|soft|ghost","icon":"play","color":"#8B93FF"}',
+    example:
+        '{"type":"button","label":"Play","send":"play","style":"primary|soft|ghost","icon":"play","color":"#8B93FF"}',
     note:
         'add "set":{"key":"value"} to update local state client-side (e.g. switch '
         'a "when" view) with no message sent; "send" still asks the model',
@@ -487,8 +556,11 @@ const List<GenUiBlockSchema> genUiCatalog = [
         'use it for a fully custom interactive app/game/tool beyond the block '
         'types. Put the whole document in "content"',
     fields: [
-      GenUiField('kind', 'enum',
-          enumValues: ['code', 'markdown', 'table', 'text', 'html']),
+      GenUiField(
+        'kind',
+        'enum',
+        enumValues: ['code', 'markdown', 'table', 'text', 'html'],
+      ),
       GenUiField('title', 'string'),
       GenUiField('content', 'string', required: true),
       GenUiField('language', 'string'),
@@ -516,8 +588,11 @@ final Set<String> genUiKnownTypes = {
 };
 
 /// Lookup by canonical type or alias.
-GenUiBlockSchema? genUiSchemaFor(String type) {
-  for (final b in genUiCatalog) {
+GenUiBlockSchema? genUiSchemaFor(
+  String type, {
+  Iterable<GenUiBlockSchema> catalog = genUiCatalog,
+}) {
+  for (final b in catalog) {
     if (b.type == type || b.aliases.contains(type)) return b;
   }
   return null;
@@ -530,17 +605,34 @@ const _promptIntro =
 
 /// Per-category framing. `bullet` categories list each example on its own line
 /// with a leading "- "; the rest are a single inline, semicolon-joined line.
-const Map<GenUiCategory, ({String intro, bool bullet, String? outro})> _categoryMeta = {
+const Map<GenUiCategory, ({String intro, bool bullet, String? outro})>
+_categoryMeta = {
   GenUiCategory.interactive: (
     intro: "Interactive (the user's tap/submit becomes their next message):",
     bullet: true,
     outro: null,
   ),
-  GenUiCategory.display: (intro: 'Display only (no interaction):', bullet: true, outro: null),
-  GenUiCategory.moreInteractive: (intro: 'More interactive:', bullet: false, outro: null),
+  GenUiCategory.display: (
+    intro: 'Display only (no interaction):',
+    bullet: true,
+    outro: null,
+  ),
+  GenUiCategory.moreInteractive: (
+    intro: 'More interactive:',
+    bullet: false,
+    outro: null,
+  ),
   GenUiCategory.charts: (intro: 'Charts:', bullet: false, outro: null),
-  GenUiCategory.moreDisplay: (intro: 'More display:', bullet: false, outro: null),
-  GenUiCategory.miniTools: (intro: 'Local mini-tools (no round-trip):', bullet: false, outro: null),
+  GenUiCategory.moreDisplay: (
+    intro: 'More display:',
+    bullet: false,
+    outro: null,
+  ),
+  GenUiCategory.miniTools: (
+    intro: 'Local mini-tools (no round-trip):',
+    bullet: false,
+    outro: null,
+  ),
   GenUiCategory.layout: (
     intro: 'Layout (compose the above as children) — grid takes "columns":2:',
     bullet: false,
@@ -550,7 +642,8 @@ const Map<GenUiCategory, ({String intro, bool bullet, String? outro})> _category
     intro:
         'Freeform primitives — you are NOT limited to the components above; compose these to build ANY custom UI (cards, dashboards, game boards, scenes). Nest them freely; colors are hex; corners are auto-rounded:',
     bullet: true,
-    outro: 'Prefer the high-level components when one fits; reach for primitives to invent something custom.',
+    outro:
+        'Prefer the high-level components when one fits; reach for primitives to invent something custom.',
   ),
   GenUiCategory.artifact: (
     intro: 'Artifact (long code/doc opens a focused panel):',
@@ -558,7 +651,8 @@ const Map<GenUiCategory, ({String intro, bool bullet, String? outro})> _category
     outro: null,
   ),
   GenUiCategory.directive: (
-    intro: 'Adaptive (acts on the app) — `theme` recolors this chat; `shortcuts` saves home-screen quick actions:',
+    intro:
+        'Adaptive (acts on the app) — `theme` recolors this chat; `shortcuts` saves home-screen quick actions:',
     bullet: false,
     outro: null,
   ),
@@ -569,11 +663,13 @@ String _exampleLine(GenUiBlockSchema b) =>
 
 /// Builds the model-facing UI catalogue from [genUiCatalog]. This replaces the
 /// hand-maintained prose blob so the prompt can never drift from the renderers.
-String buildGenUiPromptCatalogue() {
+String buildGenUiPromptCatalogue({
+  Iterable<GenUiBlockSchema> catalog = genUiCatalog,
+}) {
   final buf = StringBuffer(_promptIntro);
   for (final category in GenUiCategory.values) {
     final meta = _categoryMeta[category]!;
-    final blocks = genUiCatalog.where((b) => b.category == category).toList();
+    final blocks = catalog.where((b) => b.category == category).toList();
     if (blocks.isEmpty) continue;
     buf.write('\n\n${meta.intro}');
     if (meta.bullet) {
@@ -614,33 +710,45 @@ class GenUiValidation {
   const GenUiValidation(this.issues);
   final List<GenUiIssue> issues;
   bool get isValid => issues.isEmpty;
-  bool get hasUnknownType => issues.any((i) => i.message.startsWith('unknown type'));
+  bool get hasUnknownType =>
+      issues.any((i) => i.message.startsWith('unknown type'));
 }
 
 /// Validates a parsed `ui` spec against the catalog. Tolerant by design: it
 /// reports unknown types and missing required fields but does not throw, so
 /// rendering can still degrade gracefully. Recurses into child blocks.
-GenUiValidation validateGenUiSpec(Object? spec, {String path = r'$'}) {
+GenUiValidation validateGenUiSpec(
+  Object? spec, {
+  String path = r'$',
+  Iterable<GenUiBlockSchema> catalog = genUiCatalog,
+}) {
   final issues = <GenUiIssue>[];
-  _validateInto(spec, path, issues);
+  _validateInto(spec, path, issues, catalog);
   return GenUiValidation(issues);
 }
 
-void _validateInto(Object? node, String path, List<GenUiIssue> issues) {
+void _validateInto(
+  Object? node,
+  String path,
+  List<GenUiIssue> issues,
+  Iterable<GenUiBlockSchema> catalog,
+) {
   if (node is! Map) return;
   final type = (node['type'] ?? '').toString();
   if (type.isEmpty) {
     issues.add(GenUiIssue(path, 'missing "type"'));
     return;
   }
-  final schema = genUiSchemaFor(type);
+  final schema = genUiSchemaFor(type, catalog: catalog);
   if (schema == null) {
     issues.add(GenUiIssue(path, 'unknown type "$type"'));
     return;
   }
   for (final f in schema.fields) {
     if (f.required && node[f.name] == null) {
-      issues.add(GenUiIssue('$path.$type', 'missing required field "${f.name}"'));
+      issues.add(
+        GenUiIssue('$path.$type', 'missing required field "${f.name}"'),
+      );
     }
   }
   // Recurse ONLY into places that actually hold child blocks, so we never
@@ -649,12 +757,12 @@ void _validateInto(Object? node, String path, List<GenUiIssue> issues) {
   final children = node['children'];
   if (children is List) {
     for (var i = 0; i < children.length; i++) {
-      _validateInto(children[i], '$path.children[$i]', issues);
+      _validateInto(children[i], '$path.children[$i]', issues, catalog);
     }
   }
   final child = node['child'];
   if (child is Map) {
-    _validateInto(child, '$path.child', issues);
+    _validateInto(child, '$path.child', issues, catalog);
   }
   // accordion.items[].content and tabs.tabs[].content are nested blocks.
   for (final key in const ['items', 'tabs']) {
@@ -663,7 +771,12 @@ void _validateInto(Object? node, String path, List<GenUiIssue> issues) {
       for (var i = 0; i < list.length; i++) {
         final item = list[i];
         if (item is Map && item['content'] is Map) {
-          _validateInto(item['content'], '$path.$key[$i].content', issues);
+          _validateInto(
+            item['content'],
+            '$path.$key[$i].content',
+            issues,
+            catalog,
+          );
         }
       }
     }

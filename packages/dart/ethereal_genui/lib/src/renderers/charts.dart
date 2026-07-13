@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../genui_theme.dart';
 import '../genui_common.dart';
+import '../genui_localizations.dart';
 
 /// Builds a spoken-word summary of chart data for accessibility, since
 /// fl_chart emits no native semantics. Pure function.
@@ -32,14 +33,27 @@ class ChartRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final variant = (spec['chart'] ?? spec['variant'] ?? 'bar').toString();
-    final data = (spec['data'] is List ? spec['data'] as List<dynamic> : const [])
-        .whereType<Map<String, dynamic>>()
-        .map((e) => (
-              label: (e['label'] ?? '').toString(),
-              value: (e['value'] is num) ? (e['value'] as num).toDouble() : 0.0,
-            ))
-        .toList();
-    if (data.isEmpty) return const SizedBox.shrink();
+    final data =
+        (spec['data'] is List ? spec['data'] as List<dynamic> : const [])
+            .whereType<Map<String, dynamic>>()
+            .map(
+              (e) => (
+                label: (e['label'] ?? '').toString(),
+                value: (e['value'] is num)
+                    ? (e['value'] as num).toDouble()
+                    : 0.0,
+              ),
+            )
+            .toList();
+    if (data.isEmpty) {
+      return GenUi.emptyState(
+        context,
+        GenUiLocalizations.of(
+          context,
+        ).text(GenUiStringKey.noChartData, 'No chart data'),
+        icon: Icons.bar_chart_rounded,
+      );
+    }
 
     return GenUi.frame(
       context,
@@ -49,7 +63,10 @@ class ChartRenderer extends StatelessWidget {
           GenUi.title(context, spec['title']?.toString()),
           Semantics(
             label: chartSemanticLabel(
-                variant: variant, title: spec['title']?.toString(), data: data),
+              variant: variant,
+              title: spec['title']?.toString(),
+              data: data,
+            ),
             child: SizedBox(
               height: 200,
               child: ExcludeSemantics(
@@ -67,12 +84,20 @@ class ChartRenderer extends StatelessWidget {
     );
   }
 
-  List<Color> _palette(GenUiColors c) =>
-      [c.accent, c.celadon, c.accentSoft, c.danger, c.textSecondary];
+  List<Color> _palette(GenUiColors c) => [
+    c.accent,
+    c.celadon,
+    c.accentSoft,
+    c.danger,
+    c.textSecondary,
+  ];
 
   AxisTitles _bottomTitles(
-      BuildContext context, List<({String label, double value})> data) {
+    BuildContext context,
+    List<({String label, double value})> data,
+  ) {
     final colors = GenUiColors.of(context);
+    final text = Theme.of(context).textTheme;
     return AxisTitles(
       sideTitles: SideTitles(
         showTitles: true,
@@ -81,23 +106,27 @@ class ChartRenderer extends StatelessWidget {
           final i = value.toInt();
           if (i < 0 || i >= data.length) return const SizedBox.shrink();
           return Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(data[i].label,
-                style: TextStyle(color: colors.textTertiary, fontSize: 11)),
+            padding: const EdgeInsets.only(top: GenUiSpace.sm),
+            child: Text(
+              data[i].label,
+              style: text.labelSmall?.copyWith(color: colors.textTertiary),
+            ),
           );
         },
       ),
     );
   }
 
-  FlTitlesData _titles(BuildContext context, List<({String label, double value})> data) =>
-      FlTitlesData(
-        show: true,
-        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        bottomTitles: _bottomTitles(context, data),
-      );
+  FlTitlesData _titles(
+    BuildContext context,
+    List<({String label, double value})> data,
+  ) => FlTitlesData(
+    show: true,
+    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+    bottomTitles: _bottomTitles(context, data),
+  );
 
   Widget _bar(BuildContext context, List<({String label, double value})> data) {
     final colors = GenUiColors.of(context);
@@ -109,21 +138,27 @@ class ChartRenderer extends StatelessWidget {
         titlesData: _titles(context, data),
         barGroups: [
           for (var i = 0; i < data.length; i++)
-            BarChartGroupData(x: i, barRods: [
-              BarChartRodData(
-                toY: data[i].value,
-                color: colors.accent,
-                width: 16,
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ]),
+            BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: data[i].value,
+                  color: colors.accent,
+                  width: 16,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  Widget _line(BuildContext context, List<({String label, double value})> data,
-      {required bool area}) {
+  Widget _line(
+    BuildContext context,
+    List<({String label, double value})> data, {
+    required bool area,
+  }) {
     final colors = GenUiColors.of(context);
     return LineChart(
       LineChartData(
@@ -133,7 +168,8 @@ class ChartRenderer extends StatelessWidget {
         lineBarsData: [
           LineChartBarData(
             spots: [
-              for (var i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i].value),
+              for (var i = 0; i < data.length; i++)
+                FlSpot(i.toDouble(), data[i].value),
             ],
             isCurved: true,
             color: colors.accent,
@@ -151,8 +187,11 @@ class ChartRenderer extends StatelessWidget {
 
   Widget _pie(BuildContext context, List<({String label, double value})> data) {
     final colors = GenUiColors.of(context);
+    final text = Theme.of(context).textTheme;
     final palette = _palette(colors);
-    final total = data.fold<double>(0, (a, b) => a + b.value).clamp(1, double.infinity);
+    final total = data
+        .fold<double>(0, (a, b) => a + b.value)
+        .clamp(1, double.infinity);
     return Row(
       children: [
         Expanded(
@@ -167,8 +206,12 @@ class ChartRenderer extends StatelessWidget {
                     color: palette[i % palette.length],
                     title: '${(data[i].value / total * 100).round()}%',
                     radius: 48,
-                    titleStyle: TextStyle(
-                        color: colors.onAccent, fontSize: 11, fontWeight: FontWeight.w700),
+                    titleStyle:
+                        (text.labelSmall ?? DefaultTextStyle.of(context).style)
+                            .copyWith(
+                              color: colors.onAccent,
+                              fontWeight: FontWeight.w700,
+                            ),
                   ),
               ],
             ),
@@ -181,7 +224,7 @@ class ChartRenderer extends StatelessWidget {
           children: [
             for (var i = 0; i < data.length; i++)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: GenUiSpace.xs),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -189,11 +232,17 @@ class ChartRenderer extends StatelessWidget {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                          color: palette[i % palette.length], shape: BoxShape.circle),
+                        color: palette[i % palette.length],
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(data[i].label,
-                        style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                    const SizedBox(width: GenUiSpace.sm),
+                    Text(
+                      data[i].label,
+                      style: text.labelMedium?.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -33,12 +33,30 @@ buildGenUiSpec(
 );
 ```
 
-For a custom role mapping, set `genUiColorResolver` once at startup. The
-original Ethereal dark palette remains available as an explicit preset:
+For subtree-scoped customization, install `GenUiTheme` as a Material
+`ThemeExtension`. It controls color roles, spacing, radii, motion, and frame
+styling, and interpolates during animated theme changes:
 
 ```dart
-genUiColorResolver = (_) => GenUiColors.nocturne;
+final scheme = ColorScheme.fromSeed(seedColor: const Color(0xff3155cc));
+
+MaterialApp(
+  theme: ThemeData(
+    colorScheme: scheme,
+    extensions: [
+      GenUiTheme.fromColorScheme(scheme).copyWith(
+        spacing: const GenUiSpacingTheme(md: 14, lg: 18),
+        frames: const GenUiFrameTheme(shadowOpacity: 0.04),
+      ),
+    ],
+  ),
+);
 ```
+
+The original Ethereal dark palette remains an explicit opt-in preset with
+`extensions: const [GenUiTheme.nocturne()]`. The global
+`genUiColorResolver` remains temporarily available for source compatibility,
+but new integrations should prefer the ThemeExtension.
 
 Tell the model what it can emit with the generated catalogue:
 

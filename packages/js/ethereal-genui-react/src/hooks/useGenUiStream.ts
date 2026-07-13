@@ -1,4 +1,4 @@
-import { useMemo, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { parseSegments, tryParsePartialJson, type MessageSegment } from '@ethereal/genui-core'
 import type { AguiEventProcessor } from '../transport.js'
 
@@ -12,6 +12,17 @@ export type RenderableSegment =
 export interface UseGenUiStreamResult {
   segments: RenderableSegment[]
   isStreaming: boolean
+  /** Completed processor messages, normalized and pre-parsed for rendering. */
+  completedMessages: CompletedGenUiMessage[]
+}
+
+export interface CompletedGenUiMessage {
+  id?: string
+  role?: string
+  content: string
+  segments: RenderableSegment[]
+  /** The untouched AG-UI message for hosts that need provider-specific data. */
+  raw: unknown
 }
 
 /**
@@ -25,7 +36,7 @@ export interface UseGenUiStreamResult {
  *
  * Consumer usage:
  * ```tsx
- * const { segments } = useGenUiStream(processor)
+ * const { segments, completedMessages, isStreaming } = useGenUiStream(processor)
  * segments.map((seg, i) => {
  *   switch (seg.kind) {
  *     case 'text': return <Markdown key={i}>{seg.markdown}</Markdown>
@@ -38,10 +49,10 @@ export interface UseGenUiStreamResult {
  * ```
  */
 export function useGenUiStream(processor: AguiEventProcessor): UseGenUiStreamResult {
-  const subscribe = (cb: () => void) => {
+  const subscribe = useCallback((cb: () => void) => {
     processor.addListener(cb)
     return () => processor.removeListener(cb)
-  }
+  }, [processor])
 
   const text = useSyncExternalStore(
     subscribe,
@@ -53,13 +64,41 @@ export function useGenUiStream(processor: AguiEventProcessor): UseGenUiStreamRes
     () => processor.isRunning,
     () => false,
   )
+  const messages = useSyncExternalStore(
+    subscribe,
+    () => processor.messages,
+    () => [] as unknown[],
+  )
+
+  const completedMessages = useMemo<CompletedGenUiMessage[]>(() =>
+    messages.flatMap((raw) => {
+      if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return []
+      const message = raw as Record<string, unknown>
+      if (typeof message.content !== 'string') return []
+      return [{
+        id: typeof message.id === 'string' ? message.id : undefined,
+        role: typeof message.role === 'string' ? message.role : undefined,
+        content: message.content,
+        segments: parseSegments(message.content).map(toRenderable),
+        raw,
+      }]
+    }), [messages])
 
   const segments = useMemo<RenderableSegment[]>(() => {
-    if (text === null) return []
-    return parseSegments(text).map(toRenderable)
-  }, [text])
+    if (text !== null) return parseSegments(text).map(toRenderable)
+    for (let i = completedMessages.length - 1; i >= 0; i--) {
+      if (completedMessages[i].role === 'assistant') {
+        return completedMessages[i].segments
+      }
+    }
+    return []
+  }, [completedMessages, text])
 
-  return { segments, isStreaming: isRunning && text !== null }
+  return {
+    segments,
+    isStreaming: isRunning && text !== null,
+    completedMessages,
+  }
 }
 
 function toRenderable(seg: MessageSegment): RenderableSegment {

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'genui_actions.dart';
 import 'renderers/artifact.dart';
+import 'renderers/animation.dart';
 import 'renderers/charts.dart';
 import 'renderers/containers.dart';
 import 'renderers/decisions.dart';
@@ -15,11 +16,12 @@ import 'renderers/tool_call.dart';
 
 /// Builds the widget for a single parsed `ui` block. Every renderer conforms to
 /// this signature; display-only renderers simply ignore [actions].
-typedef GenUiBuilder = Widget Function(
-  BuildContext context,
-  Map<String, dynamic> spec,
-  GenUiActions actions,
-);
+typedef GenUiBuilder =
+    Widget Function(
+      BuildContext context,
+      Map<String, dynamic> spec,
+      GenUiActions actions,
+    );
 
 /// A `type` → renderer map. Adding a block type is one `register` call — no
 /// edits to a central switch — so host apps can extend the catalog without
@@ -53,10 +55,16 @@ final GenUiRegistry defaultGenUiRegistry = GenUiRegistry()
   ..register('choices', (c, s, a) => ChoicesRenderer(spec: s, actions: a))
   ..register('actions', (c, s, a) => ActionsRenderer(spec: s, actions: a))
   ..register('confirm', (c, s, a) => ConfirmRenderer(spec: s, actions: a))
-  ..register('suggestions', (c, s, a) => SuggestionsRenderer(spec: s, actions: a))
+  ..register(
+    'suggestions',
+    (c, s, a) => SuggestionsRenderer(spec: s, actions: a),
+  )
   // Inputs & forms
   ..register('input', (c, s, a) => InputRenderer(spec: s, actions: a))
-  ..register('multiselect', (c, s, a) => MultiSelectRenderer(spec: s, actions: a))
+  ..register(
+    'multiselect',
+    (c, s, a) => MultiSelectRenderer(spec: s, actions: a),
+  )
   ..register('slider', (c, s, a) => SliderRenderer(spec: s, actions: a))
   ..register('form', (c, s, a) => FormRenderer(spec: s, actions: a))
   // More interactive
@@ -76,7 +84,10 @@ final GenUiRegistry defaultGenUiRegistry = GenUiRegistry()
   ..register('tool_call', (c, s, a) => ToolCallRenderer(spec: s))
   // App-adaptive directives
   ..register('theme', (c, s, a) => ThemeDirectiveRenderer(spec: s, actions: a))
-  ..register('shortcuts', (c, s, a) => ShortcutsDirectiveRenderer(spec: s, actions: a))
+  ..register(
+    'shortcuts',
+    (c, s, a) => ShortcutsDirectiveRenderer(spec: s, actions: a),
+  )
   // More display
   ..registerAll(['timeline', 'steps'], (c, s, a) => TimelineRenderer(spec: s))
   ..register('progress', (c, s, a) => ProgressRenderer(spec: s))
@@ -94,8 +105,12 @@ final GenUiRegistry defaultGenUiRegistry = GenUiRegistry()
   ..register('accordion', (c, s, a) => AccordionRenderer(spec: s, actions: a))
   ..register('tabs', (c, s, a) => TabsRenderer(spec: s, actions: a))
   ..register('when', (c, s, a) => WhenRenderer(spec: s, actions: a))
+  ..register('animate', (c, s, a) => AnimationRenderer(spec: s, actions: a))
   // Freeform primitives
-  ..registerAll(['box', 'container'], (c, s, a) => BoxRenderer(spec: s, actions: a))
+  ..registerAll([
+    'box',
+    'container',
+  ], (c, s, a) => BoxRenderer(spec: s, actions: a))
   ..register('row', (c, s, a) => RowRenderer(spec: s, actions: a))
   ..register('column', (c, s, a) => ColumnRenderer(spec: s, actions: a))
   ..register('stack', (c, s, a) => StackRenderer(spec: s, actions: a))

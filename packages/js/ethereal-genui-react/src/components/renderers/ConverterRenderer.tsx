@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 export interface ConverterRendererProps {
   spec: Record<string, unknown>
@@ -32,11 +32,22 @@ function parseUnits(raw: unknown): Unit[] {
 
 export function ConverterRenderer({ spec, className, style }: ConverterRendererProps) {
   const title = spec.title as string | undefined
-  const units = parseUnits(spec.units)
+  const units = useMemo(() => parseUnits(spec.units), [spec.units])
 
   const [input, setInput] = useState('1')
   const [fromIdx, setFromIdx] = useState(0)
   const [toIdx, setToIdx] = useState(Math.min(1, units.length - 1))
+  const previousUnits = useRef(units)
+
+  useEffect(() => {
+    const previousFrom = previousUnits.current[fromIdx]?.label
+    const previousTo = previousUnits.current[toIdx]?.label
+    const nextFrom = units.findIndex(unit => unit.label === previousFrom)
+    const nextTo = units.findIndex(unit => unit.label === previousTo)
+    setFromIdx(nextFrom >= 0 ? nextFrom : 0)
+    setToIdx(nextTo >= 0 ? nextTo : Math.min(1, units.length - 1))
+    previousUnits.current = units
+  }, [units])
 
   const fromFactor = units[fromIdx]?.factor ?? 1
   const toFactor = units[toIdx]?.factor ?? 1

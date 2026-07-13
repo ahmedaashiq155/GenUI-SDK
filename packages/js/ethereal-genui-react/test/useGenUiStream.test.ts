@@ -19,6 +19,7 @@ describe('useGenUiStream', () => {
     const { result } = renderHook(() => useGenUiStream(proc))
     expect(result.current.segments).toEqual([])
     expect(result.current.isStreaming).toBe(false)
+    expect(result.current.completedMessages).toEqual([])
   })
 
   it('produces a text segment for plain streamed content', () => {
@@ -86,7 +87,7 @@ describe('useGenUiStream', () => {
     expect(result.current.segments).toEqual([{ kind: 'ui-error', raw: 'not json at all {{{' }])
   })
 
-  it('clears segments and stops streaming after TEXT_MESSAGE_END', () => {
+  it('retains completed segments and exposes completed messages after TEXT_MESSAGE_END', () => {
     const proc = new AguiEventProcessor()
     const { result } = renderHook(() => useGenUiStream(proc))
     act(() => {
@@ -98,8 +99,38 @@ describe('useGenUiStream', () => {
     act(() => {
       proc.processEvent({ type: EventType.TEXT_MESSAGE_END, messageId: 'm1' } as any)
     })
-    expect(result.current.segments).toEqual([])
+    expect(result.current.segments).toEqual([{ kind: 'text', markdown: 'Hello world' }])
     expect(result.current.isStreaming).toBe(false)
+    expect(result.current.completedMessages).toMatchObject([
+      {
+        id: 'm1',
+        role: 'assistant',
+        content: 'Hello world',
+        segments: [{ kind: 'text', markdown: 'Hello world' }],
+      },
+    ])
+  })
+
+  it('normalizes MESSAGES_SNAPSHOT content and keeps raw message metadata', () => {
+    const proc = new AguiEventProcessor()
+    const { result } = renderHook(() => useGenUiStream(proc))
+    const raw = {
+      id: 'a1',
+      role: 'assistant',
+      content: 'A card\n```ui\n{"type":"card","title":"Done"}\n```',
+      providerMeta: { cached: true },
+    }
+    act(() => {
+      proc.processEvent({ type: EventType.MESSAGES_SNAPSHOT, messages: [raw] } as any)
+    })
+    expect(result.current.completedMessages).toHaveLength(1)
+    expect(result.current.completedMessages[0].raw).toBe(raw)
+    expect(result.current.completedMessages[0].segments[1]).toEqual({
+      kind: 'ui-ready',
+      spec: { type: 'card', title: 'Done' },
+      closed: true,
+    })
+    expect(result.current.segments).toEqual(result.current.completedMessages[0].segments)
   })
 
   it('mixes text and ui segments in order', () => {

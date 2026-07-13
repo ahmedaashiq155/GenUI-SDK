@@ -1,4 +1,5 @@
-import React, { createContext, useContext } from 'react'
+import React, { createContext, useContext, useEffect } from 'react'
+import { useOptionalGenUiDebug } from '../devtools.js'
 import { useOptionalGenUiActions } from '../provider.js'
 import { GenUiPlaceholder } from './GenUiPlaceholder.js'
 import { GenUiErrorBoundary } from './GenUiErrorBoundary.js'
@@ -50,6 +51,7 @@ import { ColumnsRenderer } from './renderers/ColumnsRenderer.js'
 import { AccordionRenderer } from './renderers/AccordionRenderer.js'
 import { TabsRenderer } from './renderers/TabsRenderer.js'
 import { WhenRenderer } from './renderers/WhenRenderer.js'
+import { AnimationRenderer } from './renderers/AnimationRenderer.js'
 
 export interface GenUiBlockProps {
   spec: Record<string, unknown>
@@ -73,6 +75,10 @@ export function GenUiBlock({ spec, onSend, enabled = true, className, style }: G
   const depth = useContext(DepthContext)
   const existingInteraction = useOptionalGenUiInteraction()
   const providerActions = useOptionalGenUiActions()
+  const debug = useOptionalGenUiDebug()
+  useEffect(() => {
+    debug?.record({ type: 'render', blockType: String(spec.type ?? '') })
+  }, [debug, spec])
   if (depth >= MAX_DEPTH) {
     return <GenUiPlaceholder type="too-deep" className={className} style={style} />
   }
@@ -139,6 +145,7 @@ function GenUiBlockInner({ spec, onSend, className, style }: GenUiBlockProps) {
     case 'accordion':  return <AccordionRenderer  spec={spec} onSend={onSend} className={className} style={style} />
     case 'tabs':       return <TabsRenderer       spec={spec} onSend={onSend} className={className} style={style} />
     case 'when':       return <WhenRenderer       spec={spec} onSend={onSend} className={className} style={style} />
+    case 'animate':    return <AnimationRenderer  spec={spec} onSend={onSend} className={className} style={style} />
     case 'text':       return <TextRenderer        spec={spec} onSend={onSend} className={className} style={style} />
     case 'icon':       return <IconRenderer        spec={spec} onSend={onSend} className={className} style={style} />
     case 'spacer':     return <SpacerRenderer      spec={spec}                 className={className} style={style} />

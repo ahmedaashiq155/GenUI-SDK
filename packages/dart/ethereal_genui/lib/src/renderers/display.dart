@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../genui_theme.dart';
 import '../genui_common.dart';
+import '../genui_localizations.dart';
 
 List<Map<String, dynamic>> _maps(dynamic v) =>
-    (v is List ? v : const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
+    (v is List ? v : const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .toList();
 
 /// {"type":"card","title":"…","subtitle":"…","items":[{"label","value"}]}
 class CardRenderer extends StatelessWidget {
@@ -13,7 +16,8 @@ class CardRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
     final text = Theme.of(context).textTheme;
     final items = _maps(spec['items']);
     return GenUi.frame(
@@ -22,15 +26,20 @@ class CardRenderer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (spec['title'] != null)
-            Text('${spec['title']}',
-                style: text.titleMedium?.copyWith(
-                    color: colors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2)),
+            Text(
+              '${spec['title']}',
+              style: text.titleMedium?.copyWith(
+                color: colors.textPrimary,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.2,
+              ),
+            ),
           if (spec['subtitle'] != null) ...[
-            const SizedBox(height: 2),
-            Text('${spec['subtitle']}',
-                style: text.bodyMedium?.copyWith(color: colors.textSecondary)),
+            const SizedBox(height: GenUiSpace.xs),
+            Text(
+              '${spec['subtitle']}',
+              style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+            ),
           ],
           if (items.isNotEmpty) ...[
             const SizedBox(height: GenUiSpace.md),
@@ -42,17 +51,23 @@ class CardRenderer extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: 110,
-                      child: Text('${it['label'] ?? ''}',
-                          style: text.bodyMedium?.copyWith(color: colors.textTertiary)),
+                      child: Text(
+                        '${it['label'] ?? ''}',
+                        style: text.bodyMedium?.copyWith(
+                          color: colors.textTertiary,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: GenUiSpace.sm),
                     Expanded(
-                      child: Text('${it['value'] ?? ''}',
-                          style: text.bodyLarge?.copyWith(
-                            color: colors.textPrimary,
-                            fontWeight: FontWeight.w500,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          )),
+                      child: Text(
+                        '${it['value'] ?? ''}',
+                        style: text.bodyLarge?.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w500,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -71,7 +86,8 @@ class CalloutRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
     final style = (spec['style'] ?? 'info').toString();
     final (color, icon) = switch (style) {
       'warn' || 'warning' => (colors.danger, Icons.warning_amber_rounded),
@@ -79,15 +95,14 @@ class CalloutRenderer extends StatelessWidget {
       _ => (colors.accent, Icons.info_outline_rounded),
     };
     final text = Theme.of(context).textTheme;
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: GenUiSpace.sm),
-      padding: const EdgeInsets.all(GenUiSpace.md),
-      decoration: ShapeDecoration(
-        color: color.withValues(alpha: 0.10),
-        shape: GenUiShape.shape(GenUiRadii.lg,
-            side: BorderSide(color: color.withValues(alpha: 0.22))),
-      ),
+    return GenUi.frame(
+      context,
+      variant: GenUiFrameVariant.flat,
+      margin: EdgeInsets.symmetric(vertical: theme.spacing.sm),
+      padding: EdgeInsets.all(theme.spacing.md),
+      radius: theme.radii.lg,
+      backgroundColor: color.withValues(alpha: 0.10),
+      border: BorderSide(color: color.withValues(alpha: 0.22)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -98,11 +113,19 @@ class CalloutRenderer extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (spec['title'] != null)
-                  Text('${spec['title']}',
-                      style: text.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(
+                    '${spec['title']}',
+                    style: text.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 if (spec['text'] != null)
-                  Text('${spec['text']}',
-                      style: text.bodyMedium?.copyWith(color: colors.textSecondary)),
+                  Text(
+                    '${spec['text']}',
+                    style: text.bodyMedium?.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -119,7 +142,8 @@ class StatRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
     final text = Theme.of(context).textTheme;
     final stats = _maps(spec['stats'] ?? spec['items']);
     return GenUi.frame(
@@ -136,20 +160,24 @@ class StatRenderer extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${s['value'] ?? ''}',
-                        style: text.headlineSmall?.copyWith(
-                          color: colors.accent,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.5,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        )),
-                    const SizedBox(height: 2),
-                    Text('${s['label'] ?? ''}'.toUpperCase(),
-                        style: text.labelSmall?.copyWith(
-                          color: colors.textTertiary,
-                          letterSpacing: 0.6,
-                          fontWeight: FontWeight.w600,
-                        )),
+                    Text(
+                      '${s['value'] ?? ''}',
+                      style: text.headlineSmall?.copyWith(
+                        color: colors.accent,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: GenUiSpace.xs),
+                    Text(
+                      '${s['label'] ?? ''}'.toUpperCase(),
+                      style: text.labelSmall?.copyWith(
+                        color: colors.textTertiary,
+                        letterSpacing: 0.6,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
             ],
@@ -169,12 +197,18 @@ class TableRenderer extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
     final text = Theme.of(context).textTheme;
-    final columns = (spec['columns'] is List ? spec['columns'] as List<dynamic> : const [])
-        .map((e) => e.toString())
-        .toList();
-    final rows = (spec['rows'] is List ? spec['rows'] as List<dynamic> : const [])
-        .map((r) => (r is List ? r : const <dynamic>[]).map((e) => e.toString()).toList())
-        .toList();
+    final columns =
+        (spec['columns'] is List ? spec['columns'] as List<dynamic> : const [])
+            .map((e) => e.toString())
+            .toList();
+    final rows =
+        (spec['rows'] is List ? spec['rows'] as List<dynamic> : const [])
+            .map(
+              (r) => (r is List ? r : const <dynamic>[])
+                  .map((e) => e.toString())
+                  .toList(),
+            )
+            .toList();
     // DataTable asserts columns.isNotEmpty; rows without headers can't render
     // meaningfully anyway, so collapse whenever there are no columns.
     if (columns.isEmpty) return const SizedBox.shrink();
@@ -185,20 +219,23 @@ class TableRenderer extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: DataTable(
           headingTextStyle: text.bodyMedium?.copyWith(
-              color: colors.textPrimary, fontWeight: FontWeight.w700),
+            color: colors.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
           dataTextStyle: text.bodyMedium?.copyWith(
-              color: colors.textSecondary,
-              fontFeatures: const [FontFeature.tabularFigures()]),
+            color: colors.textSecondary,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
           dividerThickness: 0.5,
-          columns: [
-            for (final c in columns) DataColumn(label: Text(c)),
-          ],
+          columns: [for (final c in columns) DataColumn(label: Text(c))],
           rows: [
             for (final r in rows)
-              DataRow(cells: [
-                for (var i = 0; i < columns.length; i++)
-                  DataCell(Text(i < r.length ? r[i] : '')),
-              ]),
+              DataRow(
+                cells: [
+                  for (var i = 0; i < columns.length; i++)
+                    DataCell(Text(i < r.length ? r[i] : '')),
+                ],
+              ),
           ],
         ),
       ),
@@ -241,10 +278,7 @@ class TimelineRenderer extends StatelessWidget {
                       ),
                       if (i != items.length - 1)
                         Expanded(
-                          child: Container(
-                            width: 2,
-                            color: colors.hairline,
-                          ),
+                          child: Container(width: 2, color: colors.hairline),
                         ),
                     ],
                   ),
@@ -255,11 +289,19 @@ class TimelineRenderer extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('${items[i]['title'] ?? ''}',
-                              style: text.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                          Text(
+                            '${items[i]['title'] ?? ''}',
+                            style: text.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           if (items[i]['subtitle'] != null)
-                            Text('${items[i]['subtitle']}',
-                                style: text.bodyMedium?.copyWith(color: colors.textTertiary)),
+                            Text(
+                              '${items[i]['subtitle']}',
+                              style: text.bodyMedium?.copyWith(
+                                color: colors.textTertiary,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -298,9 +340,16 @@ class ProgressRenderer extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${spec['label'] ?? ''}', style: Theme.of(context).textTheme.bodyLarge),
-              Text('${(value * 100).round()}%',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.accent)),
+              Text(
+                '${spec['label'] ?? ''}',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              Text(
+                '${(value * 100).round()}%',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: colors.accent),
+              ),
             ],
           ),
           const SizedBox(height: GenUiSpace.sm),
@@ -330,10 +379,22 @@ class BadgesRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
-    final items = (spec['items'] is List ? spec['items'] as List<dynamic> : const [])
-        .map((e) => e.toString())
-        .toList();
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
+    final text = Theme.of(context).textTheme;
+    final items =
+        (spec['items'] is List ? spec['items'] as List<dynamic> : const [])
+            .map((e) => e.toString())
+            .toList();
+    if (items.isEmpty) {
+      return GenUi.emptyState(
+        context,
+        GenUiLocalizations.of(
+          context,
+        ).text(GenUiStringKey.noBadges, 'No badges'),
+        icon: Icons.sell_outlined,
+      );
+    }
     return GenUi.frame(
       context,
       child: Wrap(
@@ -342,14 +403,21 @@ class BadgesRenderer extends StatelessWidget {
         children: [
           for (final b in items)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: GenUiSpace.md, vertical: 6),
+              padding: EdgeInsets.symmetric(
+                horizontal: theme.spacing.md,
+                vertical: theme.spacing.sm,
+              ),
               decoration: ShapeDecoration(
                 color: colors.accent.withValues(alpha: 0.14),
-                shape: GenUiShape.shape(GenUiRadii.pill),
+                shape: GenUiShape.shape(theme.radii.pill),
               ),
-              child: Text(b,
-                  style: TextStyle(
-                      color: colors.accent, fontWeight: FontWeight.w600, fontSize: 13)),
+              child: Text(
+                b,
+                style: text.labelMedium?.copyWith(
+                  color: colors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
         ],
       ),
@@ -357,7 +425,7 @@ class BadgesRenderer extends StatelessWidget {
   }
 }
 
-/// {"type":"gallery","images":["https://…"]}
+/// {"type":"gallery","images":["https://…"],"alt":["Description"]}
 class GalleryRenderer extends StatelessWidget {
   const GalleryRenderer({super.key, required this.spec});
   final Map<String, dynamic> spec;
@@ -365,29 +433,56 @@ class GalleryRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
-    final urls = (spec['images'] is List ? spec['images'] as List<dynamic> : const [])
-        .map((e) => e.toString())
-        .where((u) => u.startsWith('https://'))
-        .toList();
-    if (urls.isEmpty) return const SizedBox.shrink();
+    final rawImages = spec['images'] is List
+        ? spec['images'] as List<dynamic>
+        : const <dynamic>[];
+    final alt = spec['alt'] is List
+        ? (spec['alt'] as List<dynamic>).map((e) => e.toString()).toList()
+        : const <String>[];
+    final images = <({String url, String alt})>[];
+    for (var i = 0; i < rawImages.length; i++) {
+      final raw = rawImages[i];
+      final url = raw is Map
+          ? (raw['url'] ?? raw['src'] ?? '').toString()
+          : raw.toString();
+      if (!url.startsWith('https://')) continue;
+      final description = raw is Map
+          ? (raw['alt'] ?? raw['altText'] ?? '').toString()
+          : (i < alt.length ? alt[i] : '');
+      images.add((url: url, alt: description));
+    }
+    if (images.isEmpty) {
+      return GenUi.emptyState(
+        context,
+        GenUiLocalizations.of(
+          context,
+        ).text(GenUiStringKey.noImages, 'No images'),
+        icon: Icons.photo_library_outlined,
+      );
+    }
     return SizedBox(
       height: 160,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(vertical: GenUiSpace.sm),
-        itemCount: urls.length,
+        itemCount: images.length,
         separatorBuilder: (_, _) => const SizedBox(width: GenUiSpace.sm),
         itemBuilder: (context, i) => ClipPath(
           clipper: ShapeBorderClipper(shape: GenUiShape.shape(GenUiRadii.md)),
           child: Image.network(
-            urls[i],
+            images[i].url,
             width: 200,
             cacheWidth: 400,
             fit: BoxFit.cover,
+            excludeFromSemantics: images[i].alt.isEmpty,
+            semanticLabel: images[i].alt.isEmpty ? null : images[i].alt,
             errorBuilder: (_, _, _) => Container(
               width: 200,
               color: colors.surface,
-              child: Icon(Icons.broken_image_outlined, color: colors.textTertiary),
+              child: Icon(
+                Icons.broken_image_outlined,
+                color: colors.textTertiary,
+              ),
             ),
           ),
         ),

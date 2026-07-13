@@ -1,20 +1,20 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { ChartRenderer } from '../../src/components/renderers/ChartRenderer.js'
 
 describe('ChartRenderer', () => {
-  it('returns null for empty data', () => {
-    const { container } = render(
+  it('renders a consistent empty state for empty data', () => {
+    render(
       <ChartRenderer spec={{ type: 'chart', chart: 'bar', data: [] }} onSend={vi.fn()} />
     )
-    expect(container.firstChild).toBeNull()
+    expect(screen.getByRole('status', { name: 'No chart data' })).toBeDefined()
   })
 
-  it('returns null when data is missing', () => {
-    const { container } = render(
+  it('renders an empty state when data is missing', () => {
+    render(
       <ChartRenderer spec={{ type: 'chart', chart: 'bar' }} onSend={vi.fn()} />
     )
-    expect(container.firstChild).toBeNull()
+    expect(screen.getByText('No chart data')).toBeDefined()
   })
 
   it('renders SVG for bar chart', () => {

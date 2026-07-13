@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useOptionalGenUiDebug } from '../devtools.js'
 
 export interface GenUiInteractionValue {
   enabled: boolean
@@ -31,6 +32,7 @@ export function GenUiInteractionBoundary({
   enabled,
   onSend,
 }: GenUiInteractionBoundaryProps) {
+  const debug = useOptionalGenUiDebug()
   const dispatchedRef = useRef(false)
   const previousEnabledRef = useRef(enabled)
   const [dispatched, setDispatched] = useState(false)
@@ -47,8 +49,9 @@ export function GenUiInteractionBoundary({
     if (!enabled || dispatchedRef.current) return
     dispatchedRef.current = true
     setDispatched(true)
+    debug?.record({ type: 'dispatch', message })
     onSend(message)
-  }, [enabled, onSend])
+  }, [debug, enabled, onSend])
 
   const value = useMemo<GenUiInteractionValue>(() => ({
     enabled: enabled && !dispatched,

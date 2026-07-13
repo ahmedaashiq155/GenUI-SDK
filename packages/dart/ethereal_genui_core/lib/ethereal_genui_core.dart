@@ -9,5 +9,6 @@ export 'src/genui_schema.dart';
 export 'src/json_patch.dart';
 export 'src/json_stream_parser.dart';
 export 'src/message_segments.dart';
+export 'src/remote_schema.dart';
 export 'src/genui_options.dart';
 export 'src/agui_transport.dart';

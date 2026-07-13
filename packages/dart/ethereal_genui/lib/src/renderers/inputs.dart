@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../genui_theme.dart';
 import '../genui_actions.dart';
 import '../genui_common.dart';
+import '../genui_localizations.dart';
 import '../genui_state.dart';
 
 /// {"type":"input","label":"…","placeholder":"…","submitLabel":"Send"}
@@ -35,13 +36,21 @@ class _InputRendererState extends State<InputRenderer>
 
   @override
   Widget build(BuildContext context) {
-    final submitLabel = (widget.spec['submitLabel'] ?? 'Send').toString();
+    final submitLabel =
+        (widget.spec['submitLabel'] ??
+                GenUiLocalizations.of(
+                  context,
+                ).text(GenUiStringKey.send, 'Send'))
+            .toString();
     return GenUi.frame(
       context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenUi.title(context, (widget.spec['label'] ?? widget.spec['title'])?.toString()),
+          GenUi.title(
+            context,
+            (widget.spec['label'] ?? widget.spec['title'])?.toString(),
+          ),
           TextField(
             controller: _controller,
             enabled: widget.actions.enabled,
@@ -52,7 +61,8 @@ class _InputRendererState extends State<InputRenderer>
               persist(v);
             },
             decoration: InputDecoration(
-              hintText: (widget.spec['placeholder'] ?? 'Type your answer').toString(),
+              hintText: (widget.spec['placeholder'] ?? 'Type your answer')
+                  .toString(),
             ),
           ),
           const SizedBox(height: GenUiSpace.md),
@@ -71,7 +81,11 @@ class _InputRendererState extends State<InputRenderer>
 
 /// {"type":"multiselect","title":"…","options":["A","B"],"submitLabel":"Submit"}
 class MultiSelectRenderer extends StatefulWidget {
-  const MultiSelectRenderer({super.key, required this.spec, required this.actions});
+  const MultiSelectRenderer({
+    super.key,
+    required this.spec,
+    required this.actions,
+  });
   final Map<String, dynamic> spec;
   final GenUiActions actions;
 
@@ -96,15 +110,21 @@ class _MultiSelectRendererState extends State<MultiSelectRenderer>
   }
 
   void _toggle(String o) {
-    setState(() =>
-        _selected.contains(o) ? _selected.remove(o) : _selected.add(o));
+    setState(
+      () => _selected.contains(o) ? _selected.remove(o) : _selected.add(o),
+    );
     persist(_selected.toList());
   }
 
   @override
   Widget build(BuildContext context) {
     final options = genUiOptions(widget.spec['options']);
-    final submitLabel = (widget.spec['submitLabel'] ?? 'Submit').toString();
+    final submitLabel =
+        (widget.spec['submitLabel'] ??
+                GenUiLocalizations.of(
+                  context,
+                ).text(GenUiStringKey.submit, 'Submit'))
+            .toString();
     return GenUi.frame(
       context,
       child: Column(
@@ -121,7 +141,10 @@ class _MultiSelectRendererState extends State<MultiSelectRenderer>
                   o.label,
                   widget.actions.enabled ? () => _toggle(o.value) : null,
                   selected: _selected.contains(o.value),
-                  icon: _selected.contains(o.value) ? Icons.check_rounded : null,
+                  checked: _selected.contains(o.value),
+                  icon: _selected.contains(o.value)
+                      ? Icons.check_rounded
+                      : null,
                 ),
             ],
           ),
@@ -197,9 +220,18 @@ class _SliderRendererState extends State<SliderRenderer>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: GenUi.title(context, (widget.spec['label'] ?? widget.spec['title'])?.toString())),
-              Text('$display$unit',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.accent)),
+              Expanded(
+                child: GenUi.title(
+                  context,
+                  (widget.spec['label'] ?? widget.spec['title'])?.toString(),
+                ),
+              ),
+              Text(
+                '$display$unit',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: colors.accent),
+              ),
             ],
           ),
           SliderTheme(
@@ -224,7 +256,11 @@ class _SliderRendererState extends State<SliderRenderer>
           ),
           GenUi.submitButton(
             context,
-            (widget.spec['submitLabel'] ?? 'Submit').toString(),
+            (widget.spec['submitLabel'] ??
+                    GenUiLocalizations.of(
+                      context,
+                    ).text(GenUiStringKey.submit, 'Submit'))
+                .toString(),
             widget.actions.enabled
                 ? () => widget.actions.sendMessage('$display$unit')
                 : null,
@@ -249,6 +285,7 @@ class _FormRendererState extends State<FormRenderer>
     with GenUiPersistedState<FormRenderer> {
   final _values = <String, dynamic>{};
   final _controllers = <String, TextEditingController>{};
+  final _touched = <String>{};
 
   @override
   String? get persistId => widget.spec['id']?.toString();
@@ -261,22 +298,67 @@ class _FormRendererState extends State<FormRenderer>
   }
 
   List<Map<String, dynamic>> get _fields =>
-      (widget.spec['fields'] is List ? widget.spec['fields'] as List<dynamic> : const [])
+      (widget.spec['fields'] is List
+              ? widget.spec['fields'] as List<dynamic>
+              : const [])
           .whereType<Map<String, dynamic>>()
           .toList();
 
   // Text/number fields seed their controller from any restored value.
-  TextEditingController _controllerFor(String key) =>
+  TextEditingController _controllerFor(String key, Object? initialValue) =>
       _controllers.putIfAbsent(key, () {
         final c = TextEditingController();
-        final v = _values[key];
+        final v = _values.containsKey(key) ? _values[key] : initialValue;
         if (v != null) c.text = v.toString();
         return c;
       });
 
   void _set(String key, dynamic value) {
-    setState(() => _values[key] = value);
+    setState(() {
+      _values[key] = value;
+      _touched.add(key);
+    });
     persist({..._values});
+  }
+
+  dynamic _valueFor(Map<String, dynamic> field) {
+    final key = (field['key'] ?? field['label'] ?? '').toString();
+    if (_values.containsKey(key)) return _values[key];
+    final controller = _controllers[key];
+    if (controller != null) return controller.text;
+    return field['value'];
+  }
+
+  bool _isMissing(Map<String, dynamic> field) {
+    final value = _valueFor(field);
+    if ((field['type'] ?? 'text').toString() == 'toggle') return value != true;
+    return value == null || value.toString().trim().isEmpty;
+  }
+
+  bool get _hasAnyValue => _fields.any((field) {
+    final value = _valueFor(field);
+    if (value is bool) return value;
+    return value != null && value.toString().trim().isNotEmpty;
+  });
+
+  bool get _requiredFieldsValid =>
+      _fields.every((field) => field['required'] != true || !_isMissing(field));
+
+  bool get _canSubmit =>
+      widget.actions.enabled && _hasAnyValue && _requiredFieldsValid;
+
+  String? _requiredError(BuildContext context, Map<String, dynamic> field) {
+    final key = (field['key'] ?? field['label'] ?? '').toString();
+    if (field['required'] != true ||
+        !_touched.contains(key) ||
+        !_isMissing(field)) {
+      return null;
+    }
+    return (field['requiredMessage'] ??
+            GenUiLocalizations.of(
+              context,
+            ).text(GenUiStringKey.requiredField, 'This field is required'))
+        .toString();
   }
 
   @override
@@ -302,30 +384,62 @@ class _FormRendererState extends State<FormRenderer>
           ],
           GenUi.submitButton(
             context,
-            (widget.spec['submitLabel'] ?? 'Submit').toString(),
-            widget.actions.enabled ? _submit : null,
+            (widget.spec['submitLabel'] ??
+                    GenUiLocalizations.of(
+                      context,
+                    ).text(GenUiStringKey.submit, 'Submit'))
+                .toString(),
+            _canSubmit ? _submit : null,
           ),
         ],
       ),
     );
   }
 
-  Widget _field(BuildContext context, Map<String, dynamic> f, GenUiColors colors) {
+  Widget _field(
+    BuildContext context,
+    Map<String, dynamic> f,
+    GenUiColors colors,
+  ) {
     final key = (f['key'] ?? f['label'] ?? '').toString();
     final label = (f['label'] ?? key).toString();
     final type = (f['type'] ?? 'text').toString();
+    final required = f['required'] == true;
+    final displayLabel = required ? '$label *' : label;
+    final error = _requiredError(context, f);
 
     switch (type) {
       case 'toggle':
-        final value = _values[key] is bool ? _values[key] as bool : (f['value'] == true);
-        return Row(
+        final value = _values[key] is bool
+            ? _values[key] as bool
+            : (f['value'] == true);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyLarge)),
-            Switch(
-              value: value,
-              activeThumbColor: colors.accent,
-              onChanged: widget.actions.enabled ? (v) => _set(key, v) : null,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    displayLabel,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                Switch(
+                  value: value,
+                  activeThumbColor: colors.accent,
+                  onChanged: widget.actions.enabled
+                      ? (v) => _set(key, v)
+                      : null,
+                ),
+              ],
             ),
+            if (error != null)
+              Text(
+                error,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.danger),
+              ),
           ],
         );
       case 'select':
@@ -333,7 +447,7 @@ class _FormRendererState extends State<FormRenderer>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            Text(displayLabel, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: GenUiSpace.xs),
             Wrap(
               spacing: GenUiSpace.sm,
@@ -348,27 +462,44 @@ class _FormRendererState extends State<FormRenderer>
                   ),
               ],
             ),
+            if (error != null) ...[
+              const SizedBox(height: GenUiSpace.xs),
+              Text(
+                error,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.danger),
+              ),
+            ],
           ],
         );
       default: // text | number
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            Text(displayLabel, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: GenUiSpace.xs),
             TextField(
-              controller: _controllerFor(key),
+              controller: _controllerFor(key, f['value']),
               enabled: widget.actions.enabled,
               keyboardType: type == 'number' ? TextInputType.number : null,
               onChanged: (v) {
-                _values[key] = v;
+                setState(() {
+                  _values[key] = v;
+                  _touched.add(key);
+                });
                 persist({..._values});
               },
               decoration: InputDecoration(
                 hintText: (f['placeholder'] ?? '').toString(),
+                errorText: error,
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: GenUiSpace.md, vertical: GenUiSpace.sm + 2),
-                border: OutlineInputBorder(borderRadius: GenUiShape.radius(GenUiRadii.sm)),
+                  horizontal: GenUiSpace.md,
+                  vertical: GenUiSpace.sm + 2,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: GenUiShape.radius(GenUiRadii.sm),
+                ),
               ),
             ),
           ],
@@ -383,7 +514,7 @@ class _FormRendererState extends State<FormRenderer>
       final label = (f['label'] ?? key).toString();
       // `_values` is the single source of truth (text fields write to it via
       // onChanged); fall back to the controller for any unedited text field.
-      var value = _values[key];
+      var value = _values.containsKey(key) ? _values[key] : f['value'];
       if (value == null && _controllers.containsKey(key)) {
         value = _controllers[key]!.text.trim();
       }

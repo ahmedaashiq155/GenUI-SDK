@@ -8,7 +8,7 @@ Interactive (the user's tap/submit becomes their next message):
 - {"type":"input","label":"Your name?","placeholder":"e.g. Sam","submitLabel":"Send"}
 - {"type":"multiselect","title":"Pick toppings","options":["Cheese","Olives"],"submitLabel":"Order"}
 - {"type":"slider","label":"Spiciness","min":0,"max":5,"step":1,"value":2,"unit":"/5"}
-- {"type":"form","title":"Booking","fields":[{"key":"name","label":"Name","type":"text"},{"key":"guests","label":"Guests","type":"number"},{"key":"seat","label":"Seating","type":"select","options":["Indoor","Outdoor"]},{"key":"vip","label":"VIP","type":"toggle"}],"submitLabel":"Submit"}
+- {"type":"form","title":"Booking","fields":[{"key":"name","label":"Name","type":"text","required":true},{"key":"guests","label":"Guests","type":"number"},{"key":"seat","label":"Seating","type":"select","options":["Indoor","Outdoor"],"required":true},{"key":"vip","label":"VIP","type":"toggle"}],"submitLabel":"Submit"}
 
 Display only (no interaction):
 - {"type":"card","title":"...","subtitle":"...","items":[{"label":"Key","value":"Val"}]}
@@ -20,11 +20,11 @@ More interactive: {"type":"rating","max":5}; {"type":"segmented","options":["A",
 
 Charts: {"type":"chart","chart":"bar|line|area|pie","title":"…","data":[{"label":"Mon","value":3},{"label":"Tue","value":5}]}.
 
-More display: {"type":"timeline","items":[{"title":"…","subtitle":"…","done":true}]}; {"type":"progress","label":"…","value":0.6}; {"type":"badges","items":["new"]}; {"type":"gallery","images":["https://…"]}; {"type":"divider"}.
+More display: {"type":"timeline","items":[{"title":"…","subtitle":"…","done":true}]}; {"type":"progress","label":"…","value":0.6}; {"type":"badges","items":["new"]}; {"type":"gallery","images":["https://…"],"alt":["Description"]}; {"type":"divider"}.
 
 Local mini-tools (no round-trip): {"type":"calculator"}; {"type":"converter","title":"Length","units":[{"label":"m","factor":1},{"label":"km","factor":1000}]}; {"type":"timer","seconds":60,"label":"…"}.
 
-Layout (compose the above as children) — grid takes "columns":2: {"type":"section","children":[ {…}, {…} ]}; {"type":"grid","columns":2,"children":[ {…}, {…} ]}; {"type":"columns","children":[ {…}, {…} ]}; {"type":"accordion","items":[{"title":"…","content":{…}}]}; {"type":"tabs","tabs":[{"label":"…","content":{…}}]}; {"type":"when","key":"view","equals":"new","child":{…}} (client-side conditional — shows its child only when state[key] equals "equals" (or is truthy). Pair with a button "set" to switch views in-place, with no message sent).
+Layout (compose the above as children) — grid takes "columns":2: {"type":"section","children":[ {…}, {…} ]}; {"type":"grid","columns":2,"children":[ {…}, {…} ]}; {"type":"columns","children":[ {…}, {…} ]}; {"type":"accordion","items":[{"title":"…","content":{…}}]}; {"type":"tabs","tabs":[{"label":"…","content":{…}}]}; {"type":"when","key":"view","equals":"new","child":{…}} (client-side conditional — shows its child only when state[key] equals "equals" (or is truthy). Pair with a button "set" to switch views in-place, with no message sent); {"type":"animate","effect":"fade|scale|slideUp|slideDown|slideStart|slideEnd|pulse","duration":250,"delay":0,"repeat":false,"child":{…}} (reduce-motion-aware presentation wrapper; use repeat only for meaningful status/emphasis, never decoration).
 
 Freeform primitives — you are NOT limited to the components above; compose these to build ANY custom UI (cards, dashboards, game boards, scenes). Nest them freely; colors are hex; corners are auto-rounded:
 - {"type":"box","bg":"#14171F","gradient":["#8B93FF","#7FE3D0"],"padding":16,"radius":20,"border":"#ffffff22","align":"center","width":120,"height":120,"send":"optional tap message","children":[ {…} ]}

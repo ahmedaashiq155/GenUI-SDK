@@ -4,10 +4,16 @@ import 'package:flutter/material.dart';
 
 import '../genui_theme.dart';
 import '../genui_common.dart';
+import '../genui_localizations.dart';
 
 const _keyLabels = {
-  '×': 'multiply', '÷': 'divide', '−': 'minus', '+': 'plus',
-  '=': 'equals', 'C': 'clear', '.': 'point',
+  '×': 'multiply',
+  '÷': 'divide',
+  '−': 'minus',
+  '+': 'plus',
+  '=': 'equals',
+  'C': 'clear',
+  '.': 'point',
 };
 
 /// {"type":"calculator"} — a fully local calculator (no model round-trip).
@@ -27,20 +33,20 @@ class _CalculatorRendererState extends State<CalculatorRenderer> {
   double get _current => double.tryParse(_display) ?? 0;
 
   void _digit(String d) => setState(() {
-        if (_resetNext || _display == '0') {
-          _display = d == '.' ? '0.' : d;
-          _resetNext = false;
-        } else if (!(d == '.' && _display.contains('.'))) {
-          _display += d;
-        }
-      });
+    if (_resetNext || _display == '0') {
+      _display = d == '.' ? '0.' : d;
+      _resetNext = false;
+    } else if (!(d == '.' && _display.contains('.'))) {
+      _display += d;
+    }
+  });
 
   void _setOp(String op) => setState(() {
-        if (_op != null && !_resetNext) _compute();
-        _acc = _current;
-        _op = op;
-        _resetNext = true;
-      });
+    if (_op != null && !_resetNext) _compute();
+    _acc = _current;
+    _op = op;
+    _resetNext = true;
+  });
 
   void _compute() {
     if (_op == null || _acc == null) return;
@@ -61,11 +67,11 @@ class _CalculatorRendererState extends State<CalculatorRenderer> {
   }
 
   void _clear() => setState(() {
-        _display = '0';
-        _acc = null;
-        _op = null;
-        _resetNext = true;
-      });
+    _display = '0';
+    _acc = null;
+    _op = null;
+    _resetNext = true;
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -84,16 +90,19 @@ class _CalculatorRendererState extends State<CalculatorRenderer> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(GenUiSpace.md),
-            alignment: Alignment.centerRight,
+            alignment: AlignmentDirectional.centerEnd,
             decoration: ShapeDecoration(
               color: colors.surface.withValues(alpha: 0.6),
               shape: GenUiShape.shape(GenUiRadii.md),
             ),
-            child: Text(_display,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontFeatures: const [FontFeature.tabularFigures()])),
+            child: Text(
+              _display,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
           ),
           const SizedBox(height: GenUiSpace.sm),
           for (final row in rows)
@@ -102,7 +111,10 @@ class _CalculatorRendererState extends State<CalculatorRenderer> {
               child: Row(
                 children: [
                   for (final key in row) ...[
-                    Expanded(flex: key == '0' ? 1 : 1, child: _key(context, key, colors)),
+                    Expanded(
+                      flex: key == '0' ? 1 : 1,
+                      child: _key(context, key, colors),
+                    ),
                     if (key != row.last) const SizedBox(width: GenUiSpace.sm),
                   ],
                 ],
@@ -114,18 +126,20 @@ class _CalculatorRendererState extends State<CalculatorRenderer> {
   }
 
   Widget _key(BuildContext context, String key, GenUiColors colors) {
+    final theme = GenUiTheme.of(context);
+    final text = Theme.of(context).textTheme;
     final isOp = '+−×÷='.contains(key);
     final isClear = key == 'C';
     final bg = isClear
         ? colors.danger.withValues(alpha: 0.16)
         : isOp
-            ? colors.accent.withValues(alpha: 0.18)
-            : colors.surface.withValues(alpha: 0.5);
+        ? colors.accent.withValues(alpha: 0.18)
+        : colors.surface.withValues(alpha: 0.5);
     final fg = isClear
         ? colors.danger
         : isOp
-            ? colors.accent
-            : colors.textPrimary;
+        ? colors.accent
+        : colors.textPrimary;
     return GenUiPressable(
       haptic: false,
       semanticLabel: _keyLabels[key] ?? key,
@@ -141,11 +155,20 @@ class _CalculatorRendererState extends State<CalculatorRenderer> {
         }
       },
       child: Container(
-        height: 46,
+        constraints: const BoxConstraints(minHeight: 46),
+        padding: const EdgeInsets.symmetric(vertical: GenUiSpace.sm),
         alignment: Alignment.center,
-        decoration: ShapeDecoration(color: bg, shape: GenUiShape.shape(GenUiRadii.md)),
-        child: Text(key,
-            style: TextStyle(color: fg, fontSize: 18, fontWeight: FontWeight.w600)),
+        decoration: ShapeDecoration(
+          color: bg,
+          shape: GenUiShape.shape(theme.radii.md),
+        ),
+        child: Text(
+          key,
+          style: text.titleMedium?.copyWith(
+            color: fg,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -165,25 +188,46 @@ class _ConverterRendererState extends State<ConverterRenderer> {
   int _from = 0;
   int _to = 1;
 
-  late final List<String> _labels;
-  late final List<double> _factors;
+  late List<String> _labels;
+  late List<double> _factors;
 
   @override
   void initState() {
     super.initState();
-    final units = (widget.spec['units'] is List ? widget.spec['units'] as List<dynamic> : const [])
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    _readUnits(widget.spec);
+  }
+
+  void _readUnits(Map<String, dynamic> spec) {
+    final units =
+        (spec['units'] is List ? spec['units'] as List<dynamic> : const [])
+            .whereType<Map<String, dynamic>>()
+            .toList();
     if (units.length >= 2) {
       _labels = units.map((u) => (u['label'] ?? '').toString()).toList();
       _factors = units
-          .map((u) => (u['factor'] is num) ? (u['factor'] as num).toDouble() : 1.0)
+          .map(
+            (u) => (u['factor'] is num) ? (u['factor'] as num).toDouble() : 1.0,
+          )
           .toList();
     } else {
       _labels = ['m', 'km', 'mi', 'ft'];
       _factors = [1, 1000, 1609.344, 0.3048];
     }
     _to = _labels.length > 1 ? 1 : 0;
+  }
+
+  @override
+  void didUpdateWidget(covariant ConverterRenderer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previousFrom = _from >= 0 && _from < _labels.length
+        ? _labels[_from]
+        : null;
+    final previousTo = _to >= 0 && _to < _labels.length ? _labels[_to] : null;
+    _readUnits(widget.spec);
+    final nextFrom = previousFrom == null ? -1 : _labels.indexOf(previousFrom);
+    final nextTo = previousTo == null ? -1 : _labels.indexOf(previousTo);
+    _from = nextFrom >= 0 ? nextFrom : 0;
+    _to = nextTo >= 0 ? nextTo : (_labels.length > 1 ? 1 : 0);
   }
 
   @override
@@ -220,7 +264,12 @@ class _ConverterRendererState extends State<ConverterRenderer> {
                 ),
               ),
               const SizedBox(width: GenUiSpace.sm),
-              _unitMenu(colors, _from, (v) => setState(() => _from = v)),
+              _unitMenu(
+                context,
+                colors,
+                _from,
+                (v) => setState(() => _from = v),
+              ),
             ],
           ),
           const Padding(
@@ -230,12 +279,15 @@ class _ConverterRendererState extends State<ConverterRenderer> {
           Row(
             children: [
               Expanded(
-                child: Text(resultStr,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: colors.accent)),
+                child: Text(
+                  resultStr,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineSmall?.copyWith(color: colors.accent),
+                ),
               ),
               const SizedBox(width: GenUiSpace.sm),
-              _unitMenu(colors, _to, (v) => setState(() => _to = v)),
+              _unitMenu(context, colors, _to, (v) => setState(() => _to = v)),
             ],
           ),
         ],
@@ -243,18 +295,27 @@ class _ConverterRendererState extends State<ConverterRenderer> {
     );
   }
 
-  Widget _unitMenu(GenUiColors colors, int value, ValueChanged<int> onChanged) {
+  Widget _unitMenu(
+    BuildContext context,
+    GenUiColors colors,
+    int value,
+    ValueChanged<int> onChanged,
+  ) {
+    final theme = GenUiTheme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: GenUiSpace.sm),
+      padding: EdgeInsets.symmetric(horizontal: theme.spacing.sm),
       decoration: ShapeDecoration(
         color: colors.accent.withValues(alpha: 0.14),
-        shape: GenUiShape.shape(GenUiRadii.sm),
+        shape: GenUiShape.shape(theme.radii.sm),
       ),
       child: DropdownButton<int>(
         value: value,
         underline: const SizedBox.shrink(),
         dropdownColor: colors.surfaceRaised,
-        style: TextStyle(color: colors.accent, fontWeight: FontWeight.w600),
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: colors.accent,
+          fontWeight: FontWeight.w600,
+        ),
         items: [
           for (var i = 0; i < _labels.length; i++)
             DropdownMenuItem(value: i, child: Text(_labels[i])),
@@ -285,10 +346,25 @@ class _TimerRendererState extends State<TimerRenderer> {
   @override
   void initState() {
     super.initState();
-    _total = (widget.spec['seconds'] is num)
-        ? (widget.spec['seconds'] as num).toInt()
-        : 60;
+    _total = _readTotal(widget.spec);
     _remaining = _total;
+  }
+
+  int _readTotal(Map<String, dynamic> spec) {
+    final raw = spec['seconds'] is num ? (spec['seconds'] as num).toInt() : 60;
+    return raw.clamp(0, 86400).toInt();
+  }
+
+  @override
+  void didUpdateWidget(covariant TimerRenderer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextTotal = _readTotal(widget.spec);
+    if (nextTotal == _total) return;
+    _timer?.cancel();
+    _timer = null;
+    _total = nextTotal;
+    _remaining = nextTotal;
+    _phase = _TimerPhase.idle;
   }
 
   @override
@@ -338,16 +414,34 @@ class _TimerRendererState extends State<TimerRenderer> {
   // here the liveRegion label would change every tick and re-announce every
   // second (the exact spam this design avoids). The ticking countdown is
   // already excluded from semantics via ExcludeSemantics below.
-  String get _phaseAnnouncement => switch (_phase) {
-        _TimerPhase.idle => 'Timer ready, $_formatted',
-        _TimerPhase.running => 'Timer started',
-        _TimerPhase.paused => 'Timer paused at $_formatted',
-        _TimerPhase.done => 'Timer complete',
-      };
+  String _phaseAnnouncement(BuildContext context) {
+    final strings = GenUiLocalizations.of(context);
+    return switch (_phase) {
+      _TimerPhase.idle => strings.text(
+        GenUiStringKey.timerReady,
+        'Timer ready, {time}',
+        replacements: {'time': _formatted},
+      ),
+      _TimerPhase.running => strings.text(
+        GenUiStringKey.timerStarted,
+        'Timer started',
+      ),
+      _TimerPhase.paused => strings.text(
+        GenUiStringKey.timerPaused,
+        'Timer paused at {time}',
+        replacements: {'time': _formatted},
+      ),
+      _TimerPhase.done => strings.text(
+        GenUiStringKey.timerComplete,
+        'Timer complete',
+      ),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
+    final strings = GenUiLocalizations.of(context);
     return GenUi.frame(
       context,
       child: Row(
@@ -357,17 +451,25 @@ class _TimerRendererState extends State<TimerRenderer> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (widget.spec['label'] != null)
-                  Text('${widget.spec['label']}',
-                      style: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(color: colors.textTertiary)),
+                  Text(
+                    '${widget.spec['label']}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colors.textTertiary,
+                    ),
+                  ),
                 Semantics(
                   liveRegion: true,
-                  label: _phaseAnnouncement,
+                  label: _phaseAnnouncement(context),
                   child: ExcludeSemantics(
-                    child: Text(_formatted,
-                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: _remaining == 0 ? colors.celadon : colors.textPrimary,
-                            fontFeatures: const [FontFeature.tabularFigures()])),
+                    child: Text(
+                      _formatted,
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: _remaining == 0
+                            ? colors.celadon
+                            : colors.textPrimary,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -375,11 +477,19 @@ class _TimerRendererState extends State<TimerRenderer> {
           ),
           GenUi.pill(
             context,
-            _timer != null ? 'Pause' : (_remaining == 0 ? 'Restart' : 'Start'),
+            _timer != null
+                ? strings.text(GenUiStringKey.pause, 'Pause')
+                : (_remaining == 0
+                      ? strings.text(GenUiStringKey.restart, 'Restart')
+                      : strings.text(GenUiStringKey.start, 'Start')),
             _toggle,
             filled: true,
-            icon: _timer != null ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            semanticLabel: _timer != null ? 'Pause timer' : 'Start timer',
+            icon: _timer != null
+                ? Icons.pause_rounded
+                : Icons.play_arrow_rounded,
+            semanticLabel: _timer != null
+                ? strings.text(GenUiStringKey.pauseTimer, 'Pause timer')
+                : strings.text(GenUiStringKey.startTimer, 'Start timer'),
           ),
         ],
       ),

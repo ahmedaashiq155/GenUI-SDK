@@ -11,8 +11,8 @@ describe('BadgesRenderer', () => {
   })
 
   it('renders empty state without crashing', () => {
-    const { container } = render(<BadgesRenderer spec={{ type: 'badges', items: [] }} />)
-    expect(container.firstChild).toBeDefined()
+    render(<BadgesRenderer spec={{ type: 'badges', items: [] }} />)
+    expect(screen.getByRole('status', { name: 'No badges' })).toBeDefined()
   })
 
   it('forwards className to root element', () => {

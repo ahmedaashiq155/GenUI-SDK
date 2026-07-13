@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { genUiOptions } from '@ethereal/genui-core'
 import { usePersistedState } from '../../provider.js'
 import { Pressable } from '../Pressable.js'
@@ -19,22 +19,35 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
   const id = spec.id as string | undefined
 
   const initialChecked = options
-    .map((o, i) => (o.checked ? i : -1))
-    .filter(i => i >= 0)
+    .filter(o => o.checked)
+    .map(o => o.value)
 
-  const [checkedIndices, setCheckedIndices] = usePersistedState<number[]>(id, initialChecked)
-  const checkedSet = new Set(checkedIndices)
+  const [storedChecked, setStoredChecked] = usePersistedState<Array<string | number>>(id, initialChecked)
+  const availableValues = new Set(options.map(option => option.value))
+  const checkedValues = storedChecked
+    .map(value => typeof value === 'number' ? options[value]?.value : String(value))
+    .filter((value): value is string => value != null && availableValues.has(value))
+  const checkedSet = new Set(checkedValues)
 
-  const toggle = (i: number) => {
-    const next = checkedSet.has(i)
-      ? checkedIndices.filter(x => x !== i)
-      : [...checkedIndices, i]
-    setCheckedIndices(next)
+  useEffect(() => {
+    if (storedChecked.length !== checkedValues.length ||
+        storedChecked.some((value, index) => value !== checkedValues[index])) {
+      setStoredChecked(checkedValues)
+    }
+  }, [checkedValues.join('\u0000'), setStoredChecked, storedChecked])
+
+  const toggle = (value: string) => {
+    const next = checkedSet.has(value)
+      ? checkedValues.filter(x => x !== value)
+      : [...checkedValues, value]
+    setStoredChecked(next)
   }
 
   const handleSubmit = () => {
-    if (checkedIndices.length > 0) {
-      const labels = checkedIndices.map(i => options[i]?.label ?? '').filter(Boolean)
+    if (checkedValues.length > 0) {
+      const labels = options
+        .filter(option => checkedSet.has(option.value))
+        .map(option => option.label)
       onSend(labels.join(', '))
     }
   }
@@ -67,13 +80,13 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
         </p>
       )}
       {options.map((opt, i) => {
-        const isChecked = checkedSet.has(i)
+        const isChecked = checkedSet.has(opt.value)
         return (
           <Pressable
             key={opt.value}
             role="checkbox"
             aria-checked={isChecked}
-            onPress={() => toggle(i)}
+            onPress={() => toggle(opt.value)}
             disabled={!enabled}
             style={{
               display: 'flex',
@@ -102,20 +115,20 @@ export function ChecklistRenderer({ spec, onSend, className, style }: ChecklistR
       })}
       <button
         onClick={handleSubmit}
-        disabled={!enabled || checkedIndices.length === 0}
+        disabled={!enabled || checkedValues.length === 0}
         style={{
           padding: '8px var(--ethereal-space-lg)',
           borderRadius: 'var(--ethereal-radius-pill)',
           border: 'none',
-          cursor: enabled && checkedIndices.length > 0 ? 'pointer' : 'not-allowed',
+          cursor: enabled && checkedValues.length > 0 ? 'pointer' : 'not-allowed',
           fontWeight: 500,
           fontSize: '0.875rem',
-          backgroundColor: checkedIndices.length > 0
+          backgroundColor: checkedValues.length > 0
             ? 'var(--ethereal-accent)'
             : 'color-mix(in srgb, var(--ethereal-accent) 20%, transparent)',
-          color: checkedIndices.length > 0 ? 'var(--ethereal-on-accent)' : 'var(--ethereal-text-tertiary)',
+          color: checkedValues.length > 0 ? 'var(--ethereal-on-accent)' : 'var(--ethereal-text-tertiary)',
           alignSelf: 'flex-start',
-          opacity: enabled && checkedIndices.length > 0 ? 1 : 0.5,
+          opacity: enabled && checkedValues.length > 0 ? 1 : 0.5,
           marginTop: 'var(--ethereal-space-sm)',
           transition: 'opacity 0.1s ease',
         }}

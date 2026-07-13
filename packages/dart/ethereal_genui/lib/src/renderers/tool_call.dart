@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../genui_common.dart';
 import '../genui_theme.dart';
 
 /// {"type":"tool_call","name":"calculator","args":{…},"result":"…"}
@@ -19,69 +20,105 @@ class _ToolCallRendererState extends State<ToolCallRenderer> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
     final text = Theme.of(context).textTheme;
     final name = (widget.spec['name'] ?? 'tool').toString();
     final result = (widget.spec['result'] ?? '').toString();
     final running = widget.spec['result'] == null;
     final args = widget.spec['args'];
-    final argsText = args is Map || args is List ? jsonEncode(args) : '${args ?? ''}';
+    final argsText = args is Map || args is List
+        ? jsonEncode(args)
+        : '${args ?? ''}';
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: GenUiSpace.sm),
-      decoration: ShapeDecoration(
-        color: colors.surface.withValues(alpha: 0.5),
-        shape: GenUiShape.shape(GenUiRadii.md, side: BorderSide(color: colors.hairline)),
-      ),
+    return GenUi.frame(
+      context,
+      variant: GenUiFrameVariant.flat,
+      margin: EdgeInsets.symmetric(vertical: theme.spacing.sm),
+      padding: EdgeInsets.zero,
+      radius: theme.radii.md,
+      backgroundColor: colors.surface.withValues(alpha: 0.5),
       child: Column(
         children: [
           GenUiPressable(
             haptic: false,
             onTap: () => setState(() => _open = !_open),
             child: Padding(
-              padding: const EdgeInsets.all(GenUiSpace.md),
+              padding: EdgeInsets.all(theme.spacing.md),
               child: Row(
                 children: [
-                  Icon(running ? Icons.bolt_rounded : Icons.check_circle_rounded,
-                      size: 18, color: running ? colors.accent : colors.celadon),
+                  Icon(
+                    running ? Icons.bolt_rounded : Icons.check_circle_rounded,
+                    size: 18,
+                    color: running ? colors.accent : colors.celadon,
+                  ),
                   const SizedBox(width: GenUiSpace.sm),
-                  Text('Tool · $name',
-                      style: text.bodyMedium?.copyWith(
-                          color: colors.textSecondary, fontWeight: FontWeight.w600)),
+                  Text(
+                    'Tool · $name',
+                    style: text.bodyMedium?.copyWith(
+                      color: colors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const Spacer(),
                   if (running)
                     SizedBox(
                       width: 14,
                       height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: colors.accent),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colors.accent,
+                      ),
                     )
                   else
-                    Icon(_open ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                        size: 18, color: colors.textTertiary),
+                    Icon(
+                      _open
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 18,
+                      color: colors.textTertiary,
+                    ),
                 ],
               ),
             ),
           ),
-          if (_open || running)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(GenUiSpace.md, 0, GenUiSpace.md, GenUiSpace.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (argsText.isNotEmpty)
-                    Text(argsText,
-                        style: TextStyle(
-                            color: colors.textTertiary,
-                            fontFamily: 'RobotoMono',
-                            fontSize: 12)),
-                  if (!running && result.isNotEmpty) ...[
-                    const SizedBox(height: GenUiSpace.xs),
-                    Text(result,
-                        style: text.bodyLarge?.copyWith(color: colors.textPrimary)),
-                  ],
-                ],
-              ),
-            ),
+          AnimatedSize(
+            duration: theme.motion.standard,
+            curve: theme.motion.curve,
+            alignment: AlignmentDirectional.topStart,
+            child: _open || running
+                ? Padding(
+                    padding: EdgeInsetsDirectional.fromSTEB(
+                      theme.spacing.md,
+                      0,
+                      theme.spacing.md,
+                      theme.spacing.md,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (argsText.isNotEmpty)
+                          Text(
+                            argsText,
+                            style: text.bodySmall?.copyWith(
+                              color: colors.textTertiary,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        if (!running && result.isNotEmpty) ...[
+                          SizedBox(height: theme.spacing.xs),
+                          Text(
+                            result,
+                            style: text.bodyLarge?.copyWith(
+                              color: colors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     );

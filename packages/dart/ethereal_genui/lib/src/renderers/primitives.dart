@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../genui_theme.dart';
 import '../genui_actions.dart';
 import '../genui_block.dart';
+import '../genui_common.dart';
+import '../genui_localizations.dart';
 import '../genui_state.dart';
 import 'directives.dart' show parseHexColor;
 
@@ -13,7 +15,9 @@ import 'directives.dart' show parseHexColor;
 /// accent) so model-built UI stays on-brand.
 
 List<Map<String, dynamic>> _kids(dynamic v) =>
-    (v is List ? v : const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
+    (v is List ? v : const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .toList();
 
 double? _num(dynamic v) => v is num ? v.toDouble() : null;
 
@@ -26,34 +30,34 @@ double? _dim(dynamic v) {
 }
 
 FontWeight _weight(dynamic v) => switch ('$v') {
-      'bold' || 'w700' => FontWeight.w700,
-      'semibold' || 'w600' => FontWeight.w600,
-      'medium' || 'w500' => FontWeight.w500,
-      'light' || 'w300' => FontWeight.w300,
-      _ => FontWeight.w400,
-    };
+  'bold' || 'w700' => FontWeight.w700,
+  'semibold' || 'w600' => FontWeight.w600,
+  'medium' || 'w500' => FontWeight.w500,
+  'light' || 'w300' => FontWeight.w300,
+  _ => FontWeight.w400,
+};
 
 TextAlign _textAlign(dynamic v) => switch ('$v') {
-      'center' => TextAlign.center,
-      'end' || 'right' => TextAlign.right,
-      'justify' => TextAlign.justify,
-      _ => TextAlign.left,
-    };
+  'center' => TextAlign.center,
+  'end' || 'right' => TextAlign.right,
+  'justify' => TextAlign.justify,
+  _ => TextAlign.left,
+};
 
 MainAxisAlignment _mainAlign(dynamic v) => switch ('$v') {
-      'center' => MainAxisAlignment.center,
-      'end' => MainAxisAlignment.end,
-      'between' || 'spaceBetween' => MainAxisAlignment.spaceBetween,
-      'around' || 'spaceAround' => MainAxisAlignment.spaceAround,
-      _ => MainAxisAlignment.start,
-    };
+  'center' => MainAxisAlignment.center,
+  'end' => MainAxisAlignment.end,
+  'between' || 'spaceBetween' => MainAxisAlignment.spaceBetween,
+  'around' || 'spaceAround' => MainAxisAlignment.spaceAround,
+  _ => MainAxisAlignment.start,
+};
 
 CrossAxisAlignment _crossAlign(dynamic v) => switch ('$v') {
-      'center' => CrossAxisAlignment.center,
-      'end' => CrossAxisAlignment.end,
-      'stretch' => CrossAxisAlignment.stretch,
-      _ => CrossAxisAlignment.start,
-    };
+  'center' => CrossAxisAlignment.center,
+  'end' => CrossAxisAlignment.end,
+  'stretch' => CrossAxisAlignment.stretch,
+  _ => CrossAxisAlignment.start,
+};
 
 /// A curated set of Material icons addressable by name (const so they survive
 /// tree-shaking). Unknown names fall back to a neutral dot.
@@ -134,16 +138,20 @@ class TextRenderer extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = GenUiColors.of(context);
     final size = _dim(spec['size']) ?? 15;
+    final inheritedForeground = GenUiForegroundScope.maybeOf(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: GenUiSpace.xs),
       child: Text(
         '${spec['text'] ?? ''}',
         textAlign: _textAlign(spec['align']),
-        style: TextStyle(
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           fontSize: size,
           height: 1.4,
           fontWeight: _weight(spec['weight']),
-          color: parseHexColor(spec['color']?.toString()) ?? colors.textPrimary,
+          color:
+              parseHexColor(spec['color']?.toString()) ??
+              inheritedForeground ??
+              colors.textPrimary,
         ),
       ),
     );
@@ -157,11 +165,16 @@ class IconRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
+    final inheritedForeground = GenUiForegroundScope.maybeOf(context);
     return Icon(
       iconByName(spec['icon']),
       size: _dim(spec['size']) ?? 22,
-      color: parseHexColor(spec['color']?.toString()) ?? colors.accent,
+      color:
+          parseHexColor(spec['color']?.toString()) ??
+          inheritedForeground ??
+          colors.accent,
     );
   }
 }
@@ -186,8 +199,11 @@ class ButtonRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
-    final label = '${spec['label'] ?? 'Button'}';
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
+    final text = Theme.of(context).textTheme;
+    final label =
+        '${spec['label'] ?? GenUiLocalizations.of(context).text(GenUiStringKey.button, 'Button')}';
     // Client-side state patch (no round-trip). When present, the button does NOT
     // fall back to sending the label — that fallback is what made app buttons
     // fire a chat turn and spawn a new UI.
@@ -202,34 +218,43 @@ class ButtonRenderer extends StatelessWidget {
     final primary = style == 'primary';
     final ghost = style == 'ghost';
 
-    final fg = primary ? colors.onAccent : tint;
     final bg = primary
         ? tint
         : ghost
-            ? Colors.transparent
-            : tint.withValues(alpha: 0.14);
+        ? Colors.transparent
+        : tint.withValues(alpha: 0.14);
+    final fg = GenUiContrast.readableForeground(
+      bg,
+      preferred: primary ? colors.onAccent : tint,
+      surface: colors.surface,
+    );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: EdgeInsets.symmetric(vertical: theme.spacing.xs),
       child: GenUiPressable(
         onTap: actions.enabled && (send.isNotEmpty || hasSet)
             ? () {
                 if (hasSet) {
-                  GenUiStateScope.maybeOf(context)
-                      ?.merge((set).map((k, v) => MapEntry(k.toString(), v)));
+                  GenUiStateScope.maybeOf(
+                    context,
+                  )?.merge((set).map((k, v) => MapEntry(k.toString(), v)));
                 }
                 if (send.isNotEmpty) actions.sendMessage(send);
               }
             : null,
         child: Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: GenUiSpace.lg, vertical: GenUiSpace.md),
+          padding: EdgeInsets.symmetric(
+            horizontal: theme.spacing.lg,
+            vertical: theme.spacing.md,
+          ),
           decoration: ShapeDecoration(
             color: bg,
-            shape: GenUiShape.shape(GenUiRadii.pill,
-                side: ghost
-                    ? BorderSide(color: tint.withValues(alpha: 0.4))
-                    : BorderSide.none),
+            shape: GenUiShape.shape(
+              theme.radii.pill,
+              side: ghost
+                  ? BorderSide(color: tint.withValues(alpha: 0.4))
+                  : BorderSide.none,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -240,8 +265,13 @@ class ButtonRenderer extends StatelessWidget {
                 const SizedBox(width: GenUiSpace.sm),
               ],
               Flexible(
-                child: Text(label,
-                    style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 14)),
+                child: Text(
+                  label,
+                  style: text.labelLarge?.copyWith(
+                    color: fg,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
@@ -260,18 +290,19 @@ class BoxRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = GenUiColors.of(context);
+    final theme = GenUiTheme.of(context);
+    final colors = theme.colors;
     final children = _resolveChildren(context);
-    final padding = _dim(spec['padding']) ?? GenUiSpace.md;
-    final radius = _num(spec['radius']) ?? GenUiRadii.md;
+    final padding = _dim(spec['padding']) ?? theme.spacing.md;
+    final radius = _num(spec['radius']) ?? theme.radii.md;
     final border = parseHexColor(spec['border']?.toString());
     final bg = parseHexColor(spec['bg']?.toString());
 
     final gradient = (spec['gradient'] is List)
         ? (spec['gradient'] as List)
-            .map((e) => parseHexColor(e.toString()))
-            .whereType<Color>()
-            .toList()
+              .map((e) => parseHexColor(e.toString()))
+              .whereType<Color>()
+              .toList()
         : const <Color>[];
 
     Widget content = Column(
@@ -283,25 +314,43 @@ class BoxRenderer extends StatelessWidget {
     final align = spec['align'];
     if (align == 'center') content = Center(child: content);
 
+    final authoredBackground = gradient.length >= 2
+        ? Color.lerp(gradient.first, gradient.last, 0.5)!
+        : bg;
+    final foreground = authoredBackground == null
+        ? null
+        : GenUiContrast.readableForeground(
+            authoredBackground,
+            preferred: colors.textPrimary,
+            surface: colors.surface,
+          );
+    final scopedContent = foreground == null
+        ? content
+        : GenUiForegroundScope(color: foreground, child: content);
+
     final box = Container(
       width: _dim(spec['width']),
       height: _dim(spec['height']),
       padding: EdgeInsets.all(padding),
       decoration: ShapeDecoration(
-        color: gradient.isEmpty ? (bg ?? colors.surface.withValues(alpha: 0.5)) : null,
+        color: gradient.isEmpty
+            ? (bg ?? colors.surface.withValues(alpha: 0.5))
+            : null,
         gradient: gradient.length >= 2
             ? LinearGradient(
                 colors: gradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: AlignmentDirectional.topStart,
+                end: AlignmentDirectional.bottomEnd,
               )
             : null,
         shape: GenUiShape.shape(
           radius,
-          side: border != null ? BorderSide(color: border) : BorderSide(color: colors.hairline),
+          side: border != null
+              ? BorderSide(color: border)
+              : BorderSide(color: colors.hairline),
         ),
       ),
-      child: content,
+      child: scopedContent,
     );
 
     final tap = (spec['send'] ?? '').toString();
@@ -311,16 +360,18 @@ class BoxRenderer extends StatelessWidget {
         ? GenUiPressable(
             onTap: () {
               if (hasSet) {
-                GenUiStateScope.maybeOf(context)
-                    ?.merge((set).map((k, v) => MapEntry(k.toString(), v)));
+                GenUiStateScope.maybeOf(
+                  context,
+                )?.merge((set).map((k, v) => MapEntry(k.toString(), v)));
               }
               if (tap.isNotEmpty) actions.sendMessage(tap);
             },
-            child: box)
+            child: box,
+          )
         : box;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: EdgeInsets.symmetric(vertical: theme.spacing.xs),
       child: wrapped,
     );
   }
@@ -330,7 +381,10 @@ class BoxRenderer extends StatelessWidget {
     final list = single is Map<String, dynamic>
         ? [single]
         : _kids(spec['children']);
-    return [for (final c in list) buildGenUiSpec(context, c, actions)];
+    return [
+      for (final c in list)
+        GenUiFrameScope(child: buildGenUiSpec(context, c, actions)),
+    ];
   }
 }
 
@@ -345,7 +399,8 @@ class RowRenderer extends StatelessWidget {
     final kids = _kids(spec['children']);
     final align = _mainAlign(spec['align']);
     final gap = _dim(spec['gap']) ?? GenUiSpace.sm;
-    final spaced = align == MainAxisAlignment.spaceBetween ||
+    final spaced =
+        align == MainAxisAlignment.spaceBetween ||
         align == MainAxisAlignment.spaceAround;
     final expand = spec['expand'] == true;
 
@@ -357,7 +412,9 @@ class RowRenderer extends StatelessWidget {
       children: [
         for (var i = 0; i < kids.length; i++) ...[
           if (i > 0 && !spaced) SizedBox(width: gap),
-          wrap(buildGenUiSpec(context, kids[i], actions)),
+          wrap(
+            GenUiFrameScope(child: buildGenUiSpec(context, kids[i], actions)),
+          ),
         ],
       ],
     );
@@ -376,11 +433,13 @@ class ColumnRenderer extends StatelessWidget {
     final gap = _dim(spec['gap']) ?? GenUiSpace.xs;
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: _crossAlign(spec['cross'] ?? spec['align'] ?? 'start'),
+      crossAxisAlignment: _crossAlign(
+        spec['cross'] ?? spec['align'] ?? 'start',
+      ),
       children: [
         for (var i = 0; i < kids.length; i++) ...[
           if (i > 0) SizedBox(height: gap),
-          buildGenUiSpec(context, kids[i], actions),
+          GenUiFrameScope(child: buildGenUiSpec(context, kids[i], actions)),
         ],
       ],
     );
@@ -396,18 +455,21 @@ class StackRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kids = _kids(spec['children']);
-    final alignment = switch ('${spec['align']}') {
-      'topLeft' => Alignment.topLeft,
-      'topRight' => Alignment.topRight,
-      'bottomLeft' => Alignment.bottomLeft,
-      'bottomRight' => Alignment.bottomRight,
-      'bottom' => Alignment.bottomCenter,
-      'top' => Alignment.topCenter,
-      _ => Alignment.center,
+    final AlignmentGeometry alignment = switch ('${spec['align']}') {
+      'topLeft' => AlignmentDirectional.topStart,
+      'topRight' => AlignmentDirectional.topEnd,
+      'bottomLeft' => AlignmentDirectional.bottomStart,
+      'bottomRight' => AlignmentDirectional.bottomEnd,
+      'bottom' => AlignmentDirectional.bottomCenter,
+      'top' => AlignmentDirectional.topCenter,
+      _ => AlignmentDirectional.center,
     };
     return Stack(
       alignment: alignment,
-      children: [for (final c in kids) buildGenUiSpec(context, c, actions)],
+      children: [
+        for (final c in kids)
+          GenUiFrameScope(child: buildGenUiSpec(context, c, actions)),
+      ],
     );
   }
 }
